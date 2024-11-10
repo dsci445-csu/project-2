@@ -1,5 +1,5 @@
 ---
-title: "Final Project EDA"
+title: "Data Clean"
 author: "Chandler Grote"
 date: "2024-11-10"
 output: pdf_document
@@ -19,5 +19,13 @@ library(tidyverse)
 library(ggh4x)
 ```
 
-# Explore the provided data
+## Loading a week of traking data, very large file
+```{r}
+track_week_1 <- read.csv("data/tracking_week_1.csv")
+
+track_1_pre_snap <- track_week_1 %>% filter(frameType == "BEFORE_SNAP", !is.na(event))
+
+unique(track_1_pre_snap$event)
+```
+
 
