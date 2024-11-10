@@ -1,0 +1,8 @@
+---
+title: "Final Project EDA"
+author: "Chandler Grote"
+date: "2024-11-10"
+output: pdf_document
+---
+
+
