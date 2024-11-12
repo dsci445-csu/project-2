@@ -21,6 +21,7 @@ library(ggh4x)
 
 ## Clean each tracking week to only presnap events
 ```{r}
+# only need to run once
 for (i in c(1:9)){
   file_name <- paste0("data/tracking_week_", i, ".csv")
   
