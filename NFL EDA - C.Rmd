@@ -1,0 +1,19 @@
+---
+title: "NFL EDA - C"
+author: "Chandler Grote"
+date: "2024-11-13"
+output: pdf_document
+---
+
+# EDA for Chandler to work on to avoid repo desync
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(broom)
+library(GGally)
+library(tidyr)
+library(tidymodels) 
+library(kknn)
+library(tidyverse)
+library(ggh4x)
+```

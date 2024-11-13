@@ -1,0 +1,20 @@
+---
+title: "NFL EDA - G"
+author: "Gabe Macklem"
+date: "2024-11-13"
+output: html_document
+---
+
+
+# EDA for Gabe to work on to avoid repo desync
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(broom)
+library(GGally)
+library(tidyr)
+library(tidymodels) 
+library(kknn)
+library(tidyverse)
+library(ggh4x)
+```

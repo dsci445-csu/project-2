@@ -1,23 +1,20 @@
 ---
-title: "Final Project EDA"
-author: "Chandler Grote"
-date: "2024-11-10"
-output: pdf_document
+title: "NFL EDA - J"
+author: "Justin Eldridge"
+date: "2024-11-13"
+output: html_document
 ---
+
+# EDA for Justin to work on to avoid repo desync
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(broom)
 library(GGally)
 library(tidyr)
-library(zoo)
-library(ggimage)
-library(gt)
 library(tidymodels) 
 library(kknn)
 library(tidyverse)
 library(ggh4x)
 ```
-
-# Explore the provided data
 
