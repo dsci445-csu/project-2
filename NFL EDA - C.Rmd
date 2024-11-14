@@ -17,3 +17,64 @@ library(kknn)
 library(tidyverse)
 library(ggh4x)
 ```
+
+
+```{r}
+# This is only needed for the laptop as R won't recoginize the working directory on it
+folder_dest <- "C:/Users/giant/OneDrive/Desktop/CSU Courses/DSCI 445/Final Project/Repo/project-2/"
+```
+
+```{r}
+plays <- read.csv(paste0(folder_dest, "data/plays.csv"))
+
+presnap_1 <- read.csv(paste0(folder_dest, "data/presnap_events_week_1.csv"))
+
+week_1_plays <- plays %>% filter(gameId %in% presnap_1$gameId, 
+                                 playNullifiedByPenalty == "N", 
+                                 qbKneel == 0,
+                                 (dropbackType != "UNKNOWN" | is.na(dropbackType))) %>%
+  arrange(gameId, playId) %>%
+  mutate(run_pass = case_when(pff_runPassOption == 1 ~ "run",
+                              is.na(dropbackType) ~ "run",
+                              str_detect(dropbackType, "RUN|SNEAK") ~ "run",
+                              T ~ "pass"),
+         yards_to_endzone = ifelse(possessionTeam == yardlineSide, abs(yardlineNumber - 100), yardlineNumber),
+         redzone = ifelse(yards_to_endzone <= 20, T, F),
+         half = ifelse(quarter <= 2, 1, 2),
+         sec_in_half = ((as.numeric(str_extract(gameClock, "[:digit:]+(?=:)")) * 60) + as.numeric(str_extract(gameClock, "(?<=:)[:digit:]+"))) + ifelse(quarter %in% c(1, 3), 900, 0))
+
+week_1_plays$new_half <- week_1_plays$half != c(0, week_1_plays$half[-nrow(week_1_plays)])
+week_1_plays$new_game <- week_1_plays$gameId != c(0, week_1_plays$gameId[-nrow(week_1_plays)])
+week_1_plays$new_possession <- (week_1_plays$possessionTeam != c(0, week_1_plays$possessionTeam[-nrow(week_1_plays)])) | week_1_plays$new_half
+
+# set first row of variables
+teams <- c(week_1_plays$possessionTeam[1], week_1_plays$defensiveTeam[1])
+drive <- c(1, 0)
+names(drive) <- teams
+week_1_plays$drive <- c(1, rep(0, nrow(week_1_plays) - 1))
+
+# loop through rows 2 to end of df
+for(i in c(2:nrow(week_1_plays))){
+  if(week_1_plays$new_game[i]){
+    teams <- c(week_1_plays$possessionTeam[i], week_1_plays$defensiveTeam[i])
+    drive <- c(1, 0)
+    names(drive) <- teams
+  }
+  else if(week_1_plays$new_possession[i]){
+    drive[week_1_plays$possessionTeam[i]] <- drive[week_1_plays$possessionTeam[i]] + 1
+  }
+  week_1_plays$drive[i] <- drive[week_1_plays$possessionTeam[i]]
+}
+
+# week_1_plays[,c("possessionTeam", "new_possession", "drive", "new_half")]
+```
+
+```{r}
+week_1_plays %>% ggplot()+
+  geom_histogram(aes(x = yards_to_endzone)) +
+  scale_x_continuous(breaks = seq(10, 100, 10))
+```
+
+
+
+
