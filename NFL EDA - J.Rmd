@@ -18,3 +18,162 @@ library(tidyverse)
 library(ggh4x)
 ```
 
+#Try to select a model to predict pass vs. run
+
+```{r}
+
+
+#load in the tracking data for week 1
+track1_df <- read.csv("data/presnap_events_week_1.csv")
+
+#Explor the variables available to us
+colnames(track1_df)
+
+#Load in the plays and games data to explore the variables
+plays_df <- read.csv("data/plays.csv")
+
+colnames(plays_df)
+```
+
+## Brainstorm on variables to include
+
+playid- to see what the previous play was to do a lag (i.e. if the previous run failed they are more liekly to do a pass)
+
+time_remaining
+
+yards remaining
+
+score
+
+maybe indicate if there was pre-snap movement 
+  can create magnitude vectors and take a difference for each one
+  use x coordinates
+  
+  orientation 360 where they ar facing 
+  
+distance direction and orientation for pre-snap movement 
+
+If over a certain number indicate that pre-snap movement took place
+
+want the sum of the distances traveled in each event before the snap
+
+create our own distance column because they could still be moving even if their was no event. So when we removed the na values we removed some of the distances traveled before the snap
+
+possibly filter out play with distance <0.1
+
+Need to change the data cleaning file
+
+to do lag on play we might have to sort by game ID, play id
+
+red_zone 
+
+possibly come back and make a function to calculate the teams record 
+
+should exclude plays with a penalty would introduce too much error
+
+exclude qbkneels, 
+
+
+
+
+
+Indicator for significant pre-snap movement
+time remaining
+yards remaining
+score
+red-zone
+play_id
+game_id
+play-concept lag
+See if the teams current record is available
+prensnap home and visitor score from the plays data
+designed sneaks included don't include forced sneaks might be captured in run
+runpassoption
+
+either have to exclude rpo (don't happen often enough), or can include in prediction model as either run pass or rpo
+  typcially fairly rare
+  
+  svm wouldnt be good for 3 classifiers, best for binary classifier
+  
+  or consider RPO vs run run 1st pass 2nd if the run isnt there then throw i
+  so we would consider this a run play 
+  Consider and rpo to be a run play
+  if we do this just call them runs and then we could still use svm for the binary run pass classifier
+  
+  every rpo has a primary run concept pff thingy so we could use that column to classifiy 
+  
+  Break the data down into individual drives otherwise an epa lag will consider the other teams score in the new drive. 
+  
+
+
+rpo the qb chooses as the play unfolds whether hes going to pass or run
+
+
+
+pass_length to try and get and indicator varialbe
+could use rush_location_type
+
+runconcept primary sometiems show as having one even if its a pass
+  bc of designed rollout in dropback type have a run concept associated for some reason
+  
+  can use droback type as better indicator of pass
+    -traditional scrabmle for passes, desgined rollouts-passes, 
+    elminiate unknown dropback types
+    
+calculate yard to endzone because data fails to account for the 10 yards in the endzone(based on yard number)
+-dont use yardstogo
+
+
+
+2nd draft of variables:
+
+  time remaining
+  score
+  yards remaining
+  epa lag (break down into drives so lag works properly)
+  run/pass indicator (include runpass options as runs so we can do svm,
+  designed qb sneaks as runs scrambles as passes)
+  play-concept lag
+  red_zone
+  game_id
+  play_id
+  indicator var for significant pre-snap movement
+  pre-snap home and visitor score
+  
+  --they have var with game clock which resets every quarter
+  might be able to make a function that takes game clock and gives us the amount of seconds remaining until end of the half
+  
+  
+  
+  to do:
+  
+  some eda
+  
+  how man runs vs. passes
+  how often certain events occur look for rare events
+  how many rpos end up as passes
+  
+  
+  do svm for offense
+  
+  might do random forrest for defense
+  two binary classifiers create 4 possile situtations
+  
+  
+  data cleaning:
+  
+  -- make a function to convert the game clock into seconds remaining in the half.
+  --play data, time on clock of play in minutes seconds.
+  
+  
+
+
+
+
+
+
+
+
+
+
+
