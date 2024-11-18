@@ -352,19 +352,7 @@ run_pass_plot <- filtered_data %>%
 #Display the plot
 run_pass_plot
 
-library(ggplot2)
 
-# Assuming your dataset is named filtered_data
-ggplot(filtered_data, aes(x = factor(run_pass_indicator), fill = factor(run_pass_indicator))) +
-  geom_bar() +
-  scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
-  labs(
-    x = "Play Type",
-    y = "Frequency",
-    title = "Frequency of Run and Pass Plays",
-    fill = "Play Type"
-  ) +
-  theme_minimal()
 
 
 ```
@@ -379,9 +367,13 @@ That frequency seems really suspsicious. Try doing the same thing for all dropba
 
 #Create a histogram showing the frequency of each kind of dropback type
 
+# Assign "OTHER" to rows where dropbackType is NA
+other_df <- plays_df %>%
+  mutate(dropbackType = ifelse(is.na(dropbackType), "OTHER", dropbackType))
+
 
 #Plot the frequency of each dropbackType
-drop_type_plot <- filtered_data %>%
+drop_type_plot <- other_df %>%
   ggplot( aes(x = factor(dropbackType), fill = factor(dropbackType))) +
   geom_bar() +
   labs(
@@ -401,6 +393,12 @@ From the plot I think we misunderstood the meaning of the TRADITIONAL drop back 
 Look on the kaggle description to see if anything more specific is noted about the type.
 
 
+
+## Try enconding NA values as OTHER and see what that does to the plot
+
+```{r}
+
+```
 
 
   
