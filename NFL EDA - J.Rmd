@@ -316,29 +316,67 @@ for(i in c(2:nrow(week_1_plays))){
 # 4 #
 #####
 
-# Create a new data frame by filtering out rows where dropbackType is NA or UNKNOWN
+# # Create a new data frame by filtering out rows where dropbackType is NA or UNKNOWN
+# filtered_data <- plays_df %>%
+#   filter(!is.na(dropbackType) & dropbackType != "UNKNOWN")
+# 
+# # Create the indicator variable
+# 
+# #Run if -designed run or qb_sneak
+# #Pass if - traditional, scramble, or contains "ROLLOUT"
+# 
+# filtered_data <- filtered_data %>%
+#   mutate(run_pass_ind = case_when(
+#     dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,
+#     dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,
+#     TRUE ~ NA_real_ #for safety
+#   ))
+# 
+# # Check the first few rows to ensure it worked
+# head(filtered_data)
+# 
+# 
+# #Plot the frequency of each type run vs. pass
+# run_pass_plot <- filtered_data %>%
+#   ggplot( aes(x = factor(run_pass_ind), fill = factor(run_pass_ind))) +
+#   geom_bar() +
+#   scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
+#   labs(
+#     x = "Play Type",
+#     y = "Frequency",
+#     title = "Frequency of Run and Pass Plays",
+#     fill = "Play Type"
+#   ) +
+#   theme_minimal()
+# 
+# #Display the plot
+# run_pass_plot
+
+
+
+
+# Treat NA values as "DESIGNED_RUN" and UNKNOWN values as "OTHER"
 filtered_data <- plays_df %>%
-  filter(!is.na(dropbackType) & dropbackType != "UNKNOWN")
+  mutate(dropbackType = ifelse(is.na(dropbackType) | dropbackType == "UNKNOWN", "DESIGNED_RUN", dropbackType))
 
 # Create the indicator variable
-
-#Run if -designed run or qb_sneak
-#Pass if - traditional, scramble, or contains "ROLLOUT"
+# Run if - DESIGNED_RUN or QB_SNEAK
+# Pass if - TRADITIONAL, SCRAMBLE, or contains "ROLLOUT"
 
 filtered_data <- filtered_data %>%
   mutate(run_pass_ind = case_when(
-    dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,
-    dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,
-    TRUE ~ NA_real_ #for safety
+    dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,  # Pass
+    dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,                                      # Run
+    TRUE ~ NA_real_                                                                           # Safety fallback
   ))
+
 
 # Check the first few rows to ensure it worked
 head(filtered_data)
 
-
-#Plot the frequency of each type run vs. pass
+# Plot the frequency of each type run vs. pass
 run_pass_plot <- filtered_data %>%
-  ggplot( aes(x = factor(run_pass_ind), fill = factor(run_pass_ind))) +
+  ggplot(aes(x = factor(run_pass_ind), fill = factor(run_pass_ind))) +
   geom_bar() +
   scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
   labs(
@@ -349,9 +387,8 @@ run_pass_plot <- filtered_data %>%
   ) +
   theme_minimal()
 
-#Display the plot
+# Display the plot
 run_pass_plot
-
 
 
 
@@ -391,6 +428,9 @@ drop_type_plot
 From the plot I think we misunderstood the meaning of the TRADITIONAL drop back type. It must apply to several kinds of plays since it is outrageously more common than anything else. 
 
 Look on the kaggle description to see if anything more specific is noted about the type.
+
+
+UPDATE: ITs because the NA values are likely runs in actuality so removing them inflated the proportion of pass plays.
 
 
 
