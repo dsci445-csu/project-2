@@ -165,6 +165,13 @@ calculate yard to endzone because data fails to account for the 10 yards in the 
   -- make a function to convert the game clock into seconds remaining in the half.
   --play data, time on clock of play in minutes seconds.
   
+  work on cleaning for the presnap events-
+  use game id and play id to join the data, to attach cleaned data to the plays data
+  
+  neeed out of presnap, which player is moving on the offense 
+  club is going to get joined onto possession team
+  whichever team has possession find which players are moving 
+  
   
 
 
