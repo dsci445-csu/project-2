@@ -434,11 +434,24 @@ UPDATE: ITs because the NA values are likely runs in actuality so removing them 
 
 
 
-## Try enconding NA values as OTHER and see what that does to the plot
+## 6. Try enconding NA values as OTHER and see what that does to the plot
 
 ```{r}
 
 ```
+
+## 7. Need to find out which player on the offense is moving during presnap movement
+
+If the man_in_motion indicator in the plays data is what we are looking for we can combine the tracking data to the play data with the same ID and try to figure out which player is in motion on the line 
+
+Try this out using the merged data that I created in 2.
+
+```{r}
+
+#Find an observation in the plays data that has a man in motion
+colnames(track1_df)
+```
+
 
 
   
