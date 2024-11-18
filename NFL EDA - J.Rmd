@@ -368,6 +368,38 @@ ggplot(filtered_data, aes(x = factor(run_pass_indicator), fill = factor(run_pass
 
 
 ```
+That frequency seems really suspsicious. Try doing the same thing for all dropback types and see what their frequencies are
+
+## 5. Investigate the frequency of each dropback type
+
+```{r}
+#####
+# 5 #
+#####
+
+#Create a histogram showing the frequency of each kind of dropback type
+
+
+#Plot the frequency of each dropbackType
+drop_type_plot <- filtered_data %>%
+  ggplot( aes(x = factor(dropbackType), fill = factor(dropbackType))) +
+  geom_bar() +
+  labs(
+    x = "Dropback Type",
+    y = "Frequency",
+    title = "Frequency of Dropback Types",
+    fill = "Play Type"
+  ) +
+  theme(axis.text.x=element_text(angle=90))
+  theme_minimal()
+
+#Display the plot
+drop_type_plot
+```
+From the plot I think we misunderstood the meaning of the TRADITIONAL drop back type. It must apply to several kinds of plays since it is outrageously more common than anything else. 
+
+Look on the kaggle description to see if anything more specific is noted about the type.
+
 
 
 
