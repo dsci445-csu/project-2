@@ -170,7 +170,87 @@ calculate yard to endzone because data fails to account for the 10 yards in the 
   
   neeed out of presnap, which player is moving on the offense 
   club is going to get joined onto possession team
-  whichever team has possession find which players are moving 
+  whichever team has possession find which players are moving
+  
+  
+  
+  1 .Explore the data to figure out what events are more or less rare
+```{r}
+#####
+# 1 #
+#####
+
+#Filter out the na values from the data so we can figure out the frequency of 
+#events
+
+# Filter out NA values from the event column
+wk1_events <- track1_df[!is.na(track1_df$event), ]
+
+# Create a bar plot of events (use geom_bar for categorical data)
+event_hist <- wk1_events %>%
+  ggplot(aes(x = event)) +
+  geom_bar(fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(
+    title = "Frequency of Events",
+    x = "Event",
+    y = "Count"
+  )+
+  #Rotate the axis labels to make them more readable
+  theme(axis.text.x= element_text(angle=45))
+
+# Display the plot
+event_hist
+
+```
+Look up each of the event descriptions. Specifically look at what the man_in_motion event means 
+
+Not finding anything useful in the kaggle description
+  Depending on what man in motion means we might want to use that instead of our indicator variables because then we wouldn't have to worry about the na values
+  
+  
+  
+## 2 Data joining
+
+Use the game_id and play_id to try and join the cleaned tracking data into the plays data.
+
+
+```{r}
+#####
+# 2 #
+#####
+
+#Load in the plays data and glance at it to get an idea of how to join it to 
+#the tracking data
+
+play_glance <-head(plays_df, n=15)
+
+track_glance <-head(track1_df)
+
+
+#Try the simple approach of joining the week 1 tracking data with the 
+#plays data by gameID and playID
+
+
+library(dplyr)
+
+# Perform an inner join on gameId and playId
+merged_data <- track1_df %>%
+  inner_join(plays_df, by = c("gameId", "playId"))
+
+#Take a look at the resulting dataset and see if it looks right.
+head(merged_data)
+
+
+#Ok that seems to work super well. Have chanlder take a look at it to make sure
+#nothing is being lost or if I'm missing something obvious. 
+
+#Looking ahead not sure if it will be advantageous to add all of the tracking data into the plays data
+
+
+```
+
+  
   
   
 
