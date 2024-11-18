@@ -248,7 +248,128 @@ head(merged_data)
 #Looking ahead not sure if it will be advantageous to add all of the tracking data into the plays data
 
 
+
+
 ```
+
+So we are able to join the tracking data to the plays data. Now look at the code chandler used to do some cleaning and create our indicator variables.
+
+Once I can get those joined I can find out how frequent runs vs. passes are
+
+## 3. Run Chandlers code for cleaning and such and then try to merge the datasets
+
+```{r}
+#####
+# 3 #
+#####
+
+plays <- read.csv("data/plays.csv")
+
+presnap_1 <- read.csv("data/presnap_events_week_1.csv")
+
+week_1_plays <- plays %>% filter(gameId %in% presnap_1$gameId, 
+                                 playNullifiedByPenalty == "N", 
+                                 qbKneel == 0,
+                                 (dropbackType != "UNKNOWN" | is.na(dropbackType))) %>%
+  arrange(gameId, playId) %>%
+  mutate(run_pass = case_when(pff_runPassOption == 1 ~ "run",
+                              is.na(dropbackType) ~ "run",
+                              str_detect(dropbackType, "RUN|SNEAK") ~ "run",
+                              T ~ "pass"),
+         yards_to_endzone = ifelse(possessionTeam == yardlineSide, abs(yardlineNumber - 100), yardlineNumber),
+         redzone = ifelse(yards_to_endzone <= 20, T, F),
+         half = ifelse(quarter <= 2, 1, 2),
+         sec_in_half = ((as.numeric(str_extract(gameClock, "[:digit:]+(?=:)")) * 60) + as.numeric(str_extract(gameClock, "(?<=:)[:digit:]+"))) + ifelse(quarter %in% c(1, 3), 900, 0))
+
+week_1_plays$new_half <- week_1_plays$half != c(0, week_1_plays$half[-nrow(week_1_plays)])
+week_1_plays$new_game <- week_1_plays$gameId != c(0, week_1_plays$gameId[-nrow(week_1_plays)])
+week_1_plays$new_possession <- (week_1_plays$possessionTeam != c(0, week_1_plays$possessionTeam[-nrow(week_1_plays)])) | week_1_plays$new_half
+
+# set first row of variables
+teams <- c(week_1_plays$possessionTeam[1], week_1_plays$defensiveTeam[1])
+drive <- c(1, 0)
+names(drive) <- teams
+week_1_plays$drive <- c(1, rep(0, nrow(week_1_plays) - 1))
+
+# loop through rows 2 to end of df
+for(i in c(2:nrow(week_1_plays))){
+  if(week_1_plays$new_game[i]){
+    teams <- c(week_1_plays$possessionTeam[i], week_1_plays$defensiveTeam[i])
+    drive <- c(1, 0)
+    names(drive) <- teams
+  }
+  else if(week_1_plays$new_possession[i]){
+    drive[week_1_plays$possessionTeam[i]] <- drive[week_1_plays$possessionTeam[i]] + 1
+  }
+  week_1_plays$drive[i] <- drive[week_1_plays$possessionTeam[i]]
+}
+
+# week_1_plays[,c("possessionTeam", "new_possession", "drive", "new_half")]
+
+```
+
+
+## 4. Create indicator varaibles for run/pass and determine which is more common
+
+```{r}
+#####
+# 4 #
+#####
+
+# Create a new data frame by filtering out rows where dropbackType is NA or UNKNOWN
+filtered_data <- plays_df %>%
+  filter(!is.na(dropbackType) & dropbackType != "UNKNOWN")
+
+# Create the indicator variable
+
+#Run if -designed run or qb_sneak
+#Pass if - traditional, scramble, or contains "ROLLOUT"
+
+filtered_data <- filtered_data %>%
+  mutate(run_pass_ind = case_when(
+    dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,
+    dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,
+    TRUE ~ NA_real_ #for safety
+  ))
+
+# Check the first few rows to ensure it worked
+head(filtered_data)
+
+
+#Plot the frequency of each type run vs. pass
+run_pass_plot <- filtered_data %>%
+  ggplot( aes(x = factor(run_pass_ind), fill = factor(run_pass_ind))) +
+  geom_bar() +
+  scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
+  labs(
+    x = "Play Type",
+    y = "Frequency",
+    title = "Frequency of Run and Pass Plays",
+    fill = "Play Type"
+  ) +
+  theme_minimal()
+
+#Display the plot
+run_pass_plot
+
+library(ggplot2)
+
+# Assuming your dataset is named filtered_data
+ggplot(filtered_data, aes(x = factor(run_pass_indicator), fill = factor(run_pass_indicator))) +
+  geom_bar() +
+  scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
+  labs(
+    x = "Play Type",
+    y = "Frequency",
+    title = "Frequency of Run and Pass Plays",
+    fill = "Play Type"
+  ) +
+  theme_minimal()
+
+
+```
+
+
 
   
   
