@@ -67,7 +67,19 @@ for(i in c(2:nrow(week_1_plays))){
 }
 
 # week_1_plays[,c("possessionTeam", "new_possession", "drive", "new_half")]
+
 ```
+This cleaning method correctly creates drives for each possession
+
+Looking into EPA lag
+```{r}
+epa_lag_test <- week_1_plays %>%
+  group_by(gameId, possessionTeam, drive) %>%
+  mutate(epa_lag = c(0, expectedPointsAdded[-n()])) %>%
+  ungroup() %>%
+  arrange(gameId, playId)
+```
+This function works!
 
 ```{r}
 week_1_plays %>% ggplot()+
@@ -76,5 +88,8 @@ week_1_plays %>% ggplot()+
 ```
 
 
-
+```{r}
+week_1_plays %>% ggplot() +
+  geom_histogram(aes(x = dropbackType, fill = dropbackType), stat = "count")
+```
 
