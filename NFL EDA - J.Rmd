@@ -456,6 +456,62 @@ Try this out using the merged data that I created in 2.
 colnames(track1_df)
 ```
 
+remove na values from the offensive formation 
+receiver alignment 
+
+## 7 Try to figure out a way to figure out which player on the offense is moving
+
+I'm hoping that I can find the man in motion and shift events to isolate plays that are relevant and then use some boundary to figure out which player is responsible for the movement 
+
+```{r}
+
+#Create a data frame for experimenting 
+
+df7_plays <- plays_df
+
+track1_df7 <- track1_df
+
+#Merge the plays and tracking data
+merged_df7 <- track1_df7 %>%
+  inner_join(df7_plays, by = c("gameId", "playId"))
+
+#Identify the relevant play ID's
+relevant_play_ids <- merged_df7 %>%
+  filter(event %in% c("man_in_motion", "shift")) %>%
+  pull(playId)
+
+#Create a data frame with just the relevant plays
+filtered_df7 <- merged_df7 %>%
+  filter(playId %in% relevant_play_ids)
+
+#Calculate the sum of the distance traveled for each player during each play
+#group by game, player, play 
+#sum total distance per play 
+#create new var that is total instances of those groupings n()/
+#Get average distance traveled on 
+#mean() of the distance 
+
+#Create a dummy data frame to look at data more easily
+df7_dummy <- filtered_df7 %>%
+  select(playId,gameId,frameId,displayName,dis, event)
+
+
+
+# Calculate the mean distance for each player for each play
+mean_distance_df <- filtered_df7 %>%
+  group_by(gameId, playId, displayName) %>%
+  summarize(mean_dis = mean(dis, na.rm = TRUE), .groups = "drop") # Avoids grouped output
+
+# View the results
+head(mean_distance_df)
+
+#Remove the football display name as that is not a player
+mean_distance_df <- mean_distance_df %>%
+  filter(displayName !="football")
+
+```
+
+
 
 
   
