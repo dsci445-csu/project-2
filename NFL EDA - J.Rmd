@@ -495,12 +495,11 @@ filtered_df7 <- merged_df7 %>%
 df7_dummy <- filtered_df7 %>%
   select(playId,gameId,frameId,displayName,dis, event)
 
-
-
 # Calculate the mean distance for each player for each play
 mean_distance_df <- filtered_df7 %>%
   group_by(gameId, playId, displayName) %>%
-  summarize(mean_dis = mean(dis, na.rm = TRUE), .groups = "drop") # Avoids grouped output
+  mutate(mean_dis = mean(dis, na.rm = TRUE)) %>%
+  ungroup()
 
 # View the results
 head(mean_distance_df)
@@ -509,6 +508,48 @@ head(mean_distance_df)
 mean_distance_df <- mean_distance_df %>%
   filter(displayName !="football")
 
+#Create a vector of events that we are most interested in 
+#Exclude:
+#huddle_break_offense- not interested
+#snap_direct- only 4 instances total and not sure what it means
+#line_set- not interested in the motion of the offense getting to the line
+valuable_events <- c("ball_snap", "man_in_motion", "shift")
+
+#Plot the distribution of average distance traveled by event
+mean_dist_plot <- mean_distance_df %>%
+  #Play with some cutoff values to make sure that noisy shifting around isn't
+  #included.
+  filter(event %in% valuable_events, mean_dis >0.15) %>%
+  ggplot()+
+  geom_histogram(aes(x=mean_dis))+
+  facet_wrap(~event)
+
+#Display the plot
+mean_dist_plot
+
+#Think about diff cutoff for each
+#keep the peak for ball_snap because only one person should be moving
+#shift is slower so we would have a different cutoff
+#possible to universal cutoff of 0.05
+
+
+
+#Now try to create a new column that displays the names of all the players who
+#were moving during that play 
+high_dis_players <- mean_distance_df %>%
+  filter(mean_dis >0.15)
+
+#Add a column to the filtered data with the names of the players that were
+#moving more than the cutoff on average
+
+#something went wrong because it went up 1.6M observations so come back to fix
+#this
+
+# filtered_df7 <- filtered_df7 %>%
+#   left_join(high_dis_players %>%
+#               select(playId, gameId,displayName),
+#             by=c("gameId", "playId","displayName")) %>%
+#    mutate(high_mean_dis = ifelse(!is.na(displayName), displayName, NA_character_))
 ```
 
 
