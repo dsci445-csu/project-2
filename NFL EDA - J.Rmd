@@ -16,12 +16,12 @@ library(tidymodels)
 library(kknn)
 library(tidyverse)
 library(ggh4x)
+library(dplyr)
 ```
 
 #Try to select a model to predict pass vs. run
 
 ```{r}
-
 
 #load in the tracking data for week 1
 track1_df <- read.csv("data/presnap_events_week_1.csv")
@@ -32,6 +32,7 @@ colnames(track1_df)
 #Load in the plays and games data to explore the variables
 plays_df <- read.csv("data/plays.csv")
 
+#View the variables avaialble to get a sense if what to explore
 colnames(plays_df)
 ```
 
@@ -226,17 +227,12 @@ Use the game_id and play_id to try and join the cleaned tracking data into the p
 
 #Load in the plays data and glance at it to get an idea of how to join it to 
 #the tracking data
-
 play_glance <-head(plays_df, n=15)
-
 track_glance <-head(track1_df)
 
 
 #Try the simple approach of joining the week 1 tracking data with the 
 #plays data by gameID and playID
-
-
-library(dplyr)
 
 # Perform an inner join on gameId and playId
 merged_data <- track1_df %>%
@@ -369,9 +365,12 @@ filtered_data <- plays_df %>%
 
 filtered_data <- filtered_data %>%
   mutate(run_pass_ind = case_when(
-    dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,  # Pass
-    dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,                                      # Run
-    TRUE ~ NA_real_                                                                           # Safety fallback
+    dropbackType %in% c("TRADITIONAL", "SCRAMBLE") | str_detect(dropbackType, "ROLLOUT") ~ 0,  
+    # Pass
+    dropbackType %in% c("QB_SNEAK", "DESIGNED_RUN") ~ 1,                                      
+    # Run
+    TRUE ~ NA_real_                                                                           
+    # Safety fallback
   ))
 
 
@@ -393,9 +392,6 @@ run_pass_plot <- filtered_data %>%
 
 # Display the plot
 run_pass_plot
-
-
-
 ```
 That frequency seems really suspsicious. Try doing the same thing for all dropback types and see what their frequencies are
 
@@ -450,25 +446,19 @@ If the man_in_motion indicator in the plays data is what we are looking for we c
 
 Try this out using the merged data that I created in 2.
 
-```{r}
 
-#Find an observation in the plays data that has a man in motion
-colnames(track1_df)
-```
-
-remove na values from the offensive formation 
-receiver alignment 
 
 ## 7 Try to figure out a way to figure out which player on the offense is moving
 
 I'm hoping that I can find the man in motion and shift events to isolate plays that are relevant and then use some boundary to figure out which player is responsible for the movement 
 
 ```{r}
+#####
+# 7 #
+#####
 
-#Create a data frame for experimenting 
-
+#Create dummy data frames for experimenting 
 df7_plays <- plays_df
-
 track1_df7 <- track1_df
 
 #Merge the plays and tracking data
@@ -476,6 +466,8 @@ merged_df7 <- track1_df7 %>%
   inner_join(df7_plays, by = c("gameId", "playId"))
 
 #Identify the relevant play ID's
+   # i.e. plays that have a shift or man_in_motion event at some point during
+   # the play.
 relevant_play_ids <- merged_df7 %>%
   filter(event %in% c("man_in_motion", "shift")) %>%
   pull(playId)
@@ -484,16 +476,10 @@ relevant_play_ids <- merged_df7 %>%
 filtered_df7 <- merged_df7 %>%
   filter(playId %in% relevant_play_ids)
 
-#Calculate the sum of the distance traveled for each player during each play
-#group by game, player, play 
-#sum total distance per play 
-#create new var that is total instances of those groupings n()/
-#Get average distance traveled on 
-#mean() of the distance 
-
-#Create a dummy data frame to look at data more easily
-df7_dummy <- filtered_df7 %>%
-  select(playId,gameId,frameId,displayName,dis, event)
+#Calculate the average distance each player moved during the play
+    #If all players have some degree of small noisy movement a simple sum might
+    #be misleading since longer pre-snap times would artificially inflate the
+    #distance traveled.
 
 # Calculate the mean distance for each player for each play
 mean_distance_df <- filtered_df7 %>%
