@@ -503,9 +503,16 @@ We are only really interested movement that occurs after the line is set. That i
 
 Note: The ball itself is included in the tracking data and is denoted with nflId=NA. Remove the NA values as we are only interested in players moving not the ball.
 
+This process was done in the data cleaning file. Open the file and take a look at the filtered data.
+
 ```{r}
 
+#Read in the master data set
+line_set_df <- read.csv("data/tracking_line_set_frames.csv")
+
+head(line_set_df)
 ```
+
 
 
 
