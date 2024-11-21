@@ -104,21 +104,15 @@ week_1_plays %>% ggplot() +
   geom_histogram(aes(x = dropbackType, fill = dropbackType), stat = "count")
 ```
 
+```{r}
+line_set_df <- read.csv("data/tracking_line_set_frames.csv")
+```
+
 
 # Attempt to keep only tracking betweeen line set and ball snap
 ```{r}
-#find frame where line is set for each play
-
-## NOTE: this needs to be run off of the raw tracking data. Will fix on other computer.
-line_set_frame <- presnap_1 %>%
-  filter(!is.na(nflId), event == "line_set") %>%
-  group_by(gameId, playId) %>%
-  reframe(line_set_frame = frameId) %>%
-  group_by(gameId, playId) %>%
-  filter(!duplicated(line_set_frame))
-
 presnap_test <- presnap_1 %>%
-  left_join(line_set_frame, by = c("gameId", "playId"), multiple = "all") %>%
+  left_join(line_set_df, by = c("gameId", "playId"), multiple = "all") %>%
   arrange(gameId, playId, nflId, frameId) %>%
   filter(!is.na(nflId)) %>%
   group_by(gameId, playId, nflId) %>%
