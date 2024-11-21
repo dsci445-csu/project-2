@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 library(broom)
 library(GGally)
 library(tidyr)
@@ -16,18 +16,59 @@ library(tidyverse)
 library(ggh4x)
 ```
 
+Each code block in this file should only need to run once. These are large csv's that are being loaded and this file is intended to avoid loading them every time during the rest of the project. When running a code chunk, run the entire chunk and wait for it to finish. Print statements have been added to the loops to track progress.
+
+--NOTE: These are broken out for now but should be combined into one loop before final submission for run time and simplicity. Leave broken out for now as these chunks may need to be run separately if tweaks are made to the cleaning process before final submission.
+
+
 ## Clean each tracking week to only presnap events
-```{r, eval=F}
-# only need to run once
+```{r}
 for (i in c(1:9)){
+  print(paste("Filtering Tracking Week", i))
+  
   file_name <- paste0("data/tracking_week_", i, ".csv")
   
   temp <- read.csv(file_name)
   
   temp <- temp %>%   filter(frameType!="AFTER_SNAP", dis>0.1)
-
+  
   write.csv(temp, paste0("data/presnap_events_week_", i, ".csv"), row.names = F)
 }
 ```
 
+## Find the frame where the line was set for each play
+```{r}
+print("Initialize master line set df with week 1")
 
+file_name <- paste0("data/tracking_week_1.csv")
+
+temp <- read.csv(file_name)
+
+line_set_all <- temp %>%
+  filter(!is.na(nflId), event == "line_set") %>%
+  group_by(gameId, playId) %>%
+  reframe(line_set_frame = frameId) %>%
+  group_by(gameId, playId) %>%
+  filter(!duplicated(line_set_frame)) %>%
+  ungroup()
+
+for (i in c(2:9)){
+  print(paste("Adding week", i, "to master line set df"))
+  
+  file_name <- paste0("data/tracking_week_", i, ".csv")
+  
+  temp <- read.csv(file_name)
+  
+  line_set_temp <- temp %>%
+    filter(!is.na(nflId), event == "line_set") %>%
+    group_by(gameId, playId) %>%
+    reframe(line_set_frame = frameId) %>%
+    group_by(gameId, playId) %>%
+    filter(!duplicated(line_set_frame)) %>%
+    ungroup()
+  
+  line_set_all <- line_set_all %>% rbind(line_set_temp)
+}
+
+write.csv(line_set_all, paste0("data/tracking_line_set_frames.csv"), row.names = F)
+```
