@@ -373,6 +373,7 @@ colnames(track1_df)</code></pre>
 <pre class="r"><code>#Load in the plays and games data to explore the variables
 plays_df &lt;- read.csv(&quot;data/plays.csv&quot;)
 
+#View the variables avaialble to get a sense if what to explore
 colnames(plays_df)</code></pre>
 <pre><code>##  [1] &quot;gameId&quot;                           &quot;playId&quot;                          
 ##  [3] &quot;playDescription&quot;                  &quot;quarter&quot;                         
@@ -526,17 +527,12 @@ into the plays data.</p>
 
 #Load in the plays data and glance at it to get an idea of how to join it to 
 #the tracking data
-
 play_glance &lt;-head(plays_df, n=15)
-
 track_glance &lt;-head(track1_df)
 
 
 #Try the simple approach of joining the week 1 tracking data with the 
 #plays data by gameID and playID
-
-
-library(dplyr)
 
 # Perform an inner join on gameId and playId
 merged_data &lt;- track1_df %&gt;%
