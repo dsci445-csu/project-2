@@ -24,11 +24,22 @@ library(ggh4x)
 folder_dest <- "C:/Users/giant/OneDrive/Desktop/CSU Courses/DSCI 445/Final Project/Repo/project-2/"
 ```
 
+
 ```{r}
+# read data for laptop
 plays <- read.csv(paste0(folder_dest, "data/plays.csv"))
 
 presnap_1 <- read.csv(paste0(folder_dest, "data/presnap_events_week_1.csv"))
+```
 
+```{r}
+# read data for desktop
+plays <- read.csv("data/plays.csv")
+
+presnap_1 <- read.csv("data/presnap_events_week_1.csv")
+```
+
+```{r}
 week_1_plays <- plays %>% filter(gameId %in% presnap_1$gameId, 
                                  playNullifiedByPenalty == "N", 
                                  qbKneel == 0,
@@ -92,4 +103,32 @@ week_1_plays %>% ggplot()+
 week_1_plays %>% ggplot() +
   geom_histogram(aes(x = dropbackType, fill = dropbackType), stat = "count")
 ```
+
+
+# Attempt to keep only tracking betweeen line set and ball snap
+```{r}
+#find frame where line is set for each play
+
+## NOTE: this needs to be run off of the raw tracking data. Will fix on other computer.
+line_set_frame <- presnap_1 %>%
+  filter(!is.na(nflId), event == "line_set") %>%
+  group_by(gameId, playId) %>%
+  reframe(line_set_frame = frameId) %>%
+  group_by(gameId, playId) %>%
+  filter(!duplicated(line_set_frame))
+
+presnap_test <- presnap_1 %>%
+  left_join(line_set_frame, by = c("gameId", "playId"), multiple = "all") %>%
+  arrange(gameId, playId, nflId, frameId) %>%
+  filter(!is.na(nflId)) %>%
+  group_by(gameId, playId, nflId) %>%
+  mutate(max_time = max(time),
+         max_frame = max(frameId),
+         mov_at_snap = "ball_snap" %in% event) %>%
+  ungroup()
+
+post_set_movement <- presnap_test %>%
+  filter(max_frame >= line_set_frame, frameId >= line_set_frame)
+```
+
 
