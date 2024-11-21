@@ -493,6 +493,21 @@ high_dis_players <- mean_distance_df %>%
 #    mutate(high_mean_dis = ifelse(!is.na(displayName), displayName, NA_character_))
 ```
 
+Chandler is going to look at movmement at the snap and movement after line set but before the snap.
+Then we will remove 
+
+
+## 8 Movement at ball snap
+
+We are only really interested movement that occurs after the line is set. That is we are interested in any last second movement that occur before the snap. We want to use the frameId to identify when the line is set. Then we'll filter out the irrelevant data.
+
+Note: The ball itself is included in the tracking data and is denoted with nflId=NA. Remove the NA values as we are only interested in players moving not the ball.
+
+```{r}
+
+```
+
+
 
 
 
