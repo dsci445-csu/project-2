@@ -1,0 +1,12 @@
+---
+title: "Paper Outline"
+author: "Justin C. Eldridge"
+date: "2024-11-21"
+output: pdf_document
+---
+
+# Paper Outline
+
+Outline the motivation and methodology for the project.
+
+
