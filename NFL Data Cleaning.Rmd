@@ -16,10 +16,9 @@ library(tidyverse)
 library(ggh4x)
 ```
 
-Each code block in this file should only need to run once. These are large csv's that are being loaded and this file is intended to avoid loading them every time during the rest of the project. When running a code chunk, run the entire chunk and wait for it to finish. Print statements have been added to the loops to track progress.
+Each code block in this file should only need to run once. These are large csv's that are being loaded and this file is intended to avoid loading them every time during the rest of the project. When running a code chunk, run the entire chunk and wait for it to finish.
 
---NOTE: These are broken out for now but should be combined into one loop before final submission for run time and simplicity. Leave broken out for now as these chunks may need to be run separately if tweaks are made to the cleaning process before final submission.
-
+--NOTE: This file is intended to be ran top down, one chunk at a time. Previous chunks output is needed further down so run in order as they appear.
 
 ## Combining functions and cleaning methods into one process from other files.
 Read the data files
