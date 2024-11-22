@@ -10,3 +10,25 @@ output: pdf_document
 Outline the motivation and methodology for the project.
 
 
+# random notes
+
+go into why its useful to know the things were studying
+
+try to explain broadstrokes some of the football terminology 
+
+explain who can move between the time the line is set and the snap and how that might be predictive of the offenses behavior 
+
+
+## Motivation
+
+I. Whether the offense will pass or run on the next play most important for defensive strategy.
+
+  a. We wanted to develop a predictive model that determines what type of play the offense is most likely to go with.
+  
+  b. go more into the importance of knowing from the defensive side (formations, coverage, etc)
+  
+  c. Additionally we wanted to predict the defenses behavior. Zone or man coverage, blitz, etc.
+  
+  d. go more into the importance of knowing what the defense will do. 
+  
+II. We decided to participate in the 2024 big data bowl which asks participants to develop predictive models of pre-snap behavior. (i.e. what happens before the play begins)

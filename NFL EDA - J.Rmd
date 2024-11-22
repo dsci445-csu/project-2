@@ -513,9 +513,121 @@ line_set_df <- read.csv("data/tracking_line_set_frames.csv")
 head(line_set_df)
 ```
 
+which position moved, how far did they move (distance, average speed), and were they still moving at the time of the snap (), could do total distance
+
+indicator of formation change
+multiple people move and how far they moved------0.1 yds/0.1s
+
+#Variables Final:
+
+
+ play- plays 
+ 
+, run vs. pass- plays data in chandlers EDA
+, indicator for change of formation- tracking data
+
+dummvars for who moved- use nflID to get the position from players data
+
+distance_traveled (by position),- use first and last position to get euclidian distance
+
+runpass lag,
+epa lag,
+offensve formation,
+receiver alignment,
+adverse weather indicator (just note that we would like to include this but its not available in the data provided)
+
+success 50% of yards on 1st 70% on 2nd, 100% on 3rd and 4th down
+
+
+```{r}
+player_play_df <- read.csv("data/player_play.csv")
+
+colnames(player_play_df)
+
+players_df <- read.csv("data/players.csv")
+
+colnames(players_df)
+
+colnames(plays_df)
+```
+
+Variables:
+
+run pass indicator from plays data
+
+Change of formation: player_play data  (if there is a shift)
+  shifts are counted as motions but motions arent counted as shifts
+  
+preSnapHomeTeamWinProbability- 
+presnapVisitor team win prob- games.csv contains home away
+
+home away indicator
+
+Offensive formation: 2 columns in the plays offensive formation and receiver alignment
 
 
 
+
+Run pass indicator:(rp_ind)
+  -plays
+  
+Change of Formation:(change_form)
+  -Use shift from player_play
+  -if there was a shift
+  
+Pre-snap Home Team Win Probability: (preSnapVisitorTeamWinProbability):
+  -
+  
+Offensive Formation: (offenseFormation)
+  -
+  
+Expected Points Added Lag: (epa_lag)
+  -
+Receiver Alignment:
+  -
+  
+Player movement:
+
+shift_since_lineset:
+
+
+
+-
+
+Motion at ball snap:(inMotionAtBallSnap)
+
+Motion since line set: (motionSinceLineset)
+  -true if inmotion true
+  -if true inmotion at snap not necesarily true
+  
+
+
+
+
+join all players
+separate out wr, te, etc
+join them back together into each row
+
+-
+
+
+
+```{r}
+#Create a dummy dataframe with the columns we want to include
+
+final_df_rd <- c("gameId", "playId", "rpInd", "offenseFormation", "epaLag",
+                 "wrMotion", "teMotion","rbMotion",
+                 "wrAtSnap", "teAtSnap", "rbAtSnap", "shiftSinceLineset",
+                 "receiverAlignment", "preSnapHomeTeamWinProbability",
+                 "preSnapVisitorTeamWinProbability", "changeOfFormation","teamId")
+
+#still ahve inmotion at ball sanp
+
+#currently 
+
+
+final_df_rd
+```
 
 
   
