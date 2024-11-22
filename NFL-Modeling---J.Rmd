@@ -69,7 +69,7 @@ library(glmnet)
 
   Use LASSO to perform varaible selection and then fit a logistic regression model as a kind of control to compare our other models against.
 
-```{r, logistic_model}
+```{r, logistic_model, cache=TRUE}
 
 #Load in the data set
 nfl_df <- read.csv("data/modeling_data_frame.csv")
@@ -80,7 +80,6 @@ nfl_df$run_pass <- as.factor(nfl_df$run_pass)
 #Convert the boolean columns into numeric ones
 bool_cols <- c("redzone", "wr_motion", "te_motion", "rb_motion",
                "wr_atsnap", "te_atsnap", "rb_atsnap")
-
 nfl_df[bool_cols] <- lapply(nfl_df[bool_cols], as.numeric)
 
 #Remove NA values
@@ -94,9 +93,17 @@ lambda <- lambda <- 10^seq(-2, 10, length.out = 100)
 
 #Create a recipe for the lasso model and normalize the predictors.
 lasso_rec <- recipe(run_pass~., data=nfl_df) %>%
+  
+  #Fix error for missing values by assigning them with unknown
   step_unknown(all_nominal_predictors()) %>%
+  
+  #Fix error where some variables are categorical and not numeric
   step_dummy(all_nominal_predictors()) %>%
+  
+  #Fix error from some of them having zero variance
   step_zv(all_predictors())%>%
+  
+  #Normalize the numeric predictors to have mean=0 and sd=1
   step_normalize(all_numeric_predictors())
 
 #Create an empty data frame to store our lasso estimates
@@ -116,19 +123,58 @@ for(lam in lambda){
     tidy() %>%
     bind_rows(lasso_ests)-> lasso_ests
 }
-```
 
-
-```{r}
-
-#Create a line plot of 
+  #Create a line plot of 
 lasso_ests |>
   filter(term != "(Intercept)") |>
   ggplot() +
   geom_line(aes(penalty, estimate, group = term, colour = term)) +
   coord_trans(x = "log10")+
+  #The legend is so large it obstructs the graph. You can comment out this line
+  # and view the graph in a new window to get a better idea. 
   theme(legend.position="none")
+```
+
+
+```{r}
+
+#Create a data frame for tuning lambda
+tune_df <- data.frame(lambda=lambda)
+
+#Perform 10-fold cross-validation to get an estimate of test MSE for each
+#labmda in our grid
+nfl_10fld_cv <- vfold_cv(nfl_df, v=10)
+
+#Specify the model
+lasso_spec <- logistic_reg(mixture = 1, penalty = tune("lambda")) %>%
+  set_mode("classification") %>%
+  set_engine("glmnet")
+
+#Create the workflow object for lasso
+lasso_workflow <-workflow() %>%
+  add_model(lasso_spec) %>%
+  add_recipe(lasso_rec) 
+
+#Perform the cross validation
+tune_results <- tune_grid( lasso_workflow,
+                           resamples=nfl_10fld_cv,
+                           grid=tune_df)
+
+#Determine the best lambda value
+best_lambda <- select_best(tune_results, metric="accuracy") #best lambda=0.01
+
+#SEEMS SUSPICIOUS THAT THE OPTIMUM LAMBDA JUST SO HAPPENS TO BE THE FIRST ONE
+#IN THE GRID....
+
 
 ```
+
+```{r}
+
+
+
+
+```
+
 
 
