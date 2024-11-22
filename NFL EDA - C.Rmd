@@ -140,7 +140,7 @@ This joins home and away indicator to determine which win probability column to 
 ```{r}
 player_plays_1 <- player_play %>% filter(gameId %in% games$gameId[games$week == 1])
 
-home_away <- games %>% select(gameId, homeTeamAbbr, visitorTeamAbbr)
+home_away <- games %>% select(gameId, week, homeTeamAbbr, visitorTeamAbbr)
 
 plays_clean <- plays %>% 
   left_join(home_away, by = "gameId") %>%
