@@ -29,6 +29,12 @@ folder_dest <- "C:/Users/giant/OneDrive/Desktop/CSU Courses/DSCI 445/Final Proje
 # read data for laptop
 plays <- read.csv(paste0(folder_dest, "data/plays.csv"))
 
+player_play <- read.csv(paste0(folder_dest, "data/player_play.csv"))
+
+players <- read.csv(paste0(folder_dest, "data/players.csv"))
+
+games <- read.csv(paste0(folder_dest, "data/games.csv"))
+
 presnap_1 <- read.csv(paste0(folder_dest, "data/presnap_events_week_1.csv"))
 
 line_set_df <- read.csv(paste0(folder_dest, "data/tracking_line_set_frames.csv"))
@@ -94,6 +100,11 @@ epa_lag_test <- week_1_plays %>%
   mutate(epa_lag = c(0, expectedPointsAdded[-n()])) %>%
   ungroup() %>%
   arrange(gameId, playId)
+
+third_down_epa <- epa_lag_test %>%
+  filter(down == 3) %>%
+  select(yardsToGo, yardsGained, expectedPointsAdded) %>%
+  mutate(gain_first = yardsGained >= yardsToGo)
 ```
 This function works!
 
@@ -124,4 +135,16 @@ presnap_test <- presnap_1 %>%
 post_set_movement <- presnap_test %>%
   filter(frameId >= line_set_frame)
 ```
+
+This joins home and away indicator to determine which win probability column to use.
+```{r}
+player_plays_1 <- player_play %>% filter(gameId %in% games$gameId[games$week == 1])
+
+home_away <- games %>% select(gameId, homeTeamAbbr, visitorTeamAbbr)
+
+plays_clean <- plays %>% 
+  left_join(home_away, by = "gameId") %>%
+  mutate(currWinPercentage = ifelse(possessionTeam == homeTeamAbbr, preSnapHomeTeamWinProbability, preSnapVisitorTeamWinProbability))
+```
+
 
