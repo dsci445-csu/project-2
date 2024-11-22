@@ -1,0 +1,135 @@
+---
+title: "NFL Modeling - C"
+author: "Chandler Grote"
+date: "2024-11-22"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+#Load the appropriate libraries:
+library(ggplot2)
+library(tidymodels)
+library(tidyr)
+library(tidyverse)
+library(glmnet)
+library(kknn)
+```
+
+# Modeling 
+
+In this document we will develop a statistical model to predict whether the offense will execute a run or a pass play. The model will include the following variables
+
+
+-game_id: Unique identifier for the game
+
+-play_id: Unique identifier for a specific play
+
+-possession_team: Identifies the offensive team
+
+-week: Identifies which week of the season the game was in.
+
+-run_pass: Indicates if the play was a run of a pass (response variable)
+
+-down: Identifies which down the offensive team was on for a particular play.
+
+-yards_to_go: The number of yards till a first down.
+
+-yards_to_endzone: The number of yeards till the opponents endzone.
+
+-redzone: Indicates whether the offense is within 20 yards of the opponents endzone.
+
+-sec_in_half: The number of seconds remaining on the play clock in the current half.
+
+-offense_formation: Categorical variable indicating what formation the offense uses.
+
+-receiver_alingment: Enumerated as 0x0, 1x0, 1x1, 2x0, 2x1, 2x2, 3x0, 3x1, 3x2 (text)
+
+-epa_lag: Serial correllation of expected points added.
+
+-curr_win_percentage: Win percentage for the current offensive team.
+
+-form_change: Uses shifts to determine if the offense changed formation before the ball was snapped.
+
+-wr_motion: Indicates if a wide receiver moved after the line was set.
+
+-te_motion: Indicates if a tight end moved after the line was set.
+
+-rb_motion: Indicates if a running back moved after the line was set.
+
+-wr_atsnap: Indicates if a wide receiver was in motion at the time of the snap.
+
+-te_atsnap: Indicates if a tight end was in motion at the time of the snap.
+
+-rb_atsnap: Indicates if a running back was in motion at the time of the snap.
+
+# Modeling
+
+## Cleaning the data frame
+
+```{r data-frame-cleaning}
+nfl_df <- read.csv("data/modeling_data_frame.csv")
+
+unwanted_columns <- c("game_id", "play_id")
+
+df_clean <- nfl_df %>% select(-all_of(unwanted_columns))
+```
+
+## KNN modeling test for one team
+
+```{r knn-one-team}
+set.seed(445)
+team <- "DEN"
+
+team_df <- df_clean %>% 
+  filter(possession_team == team, !is.na(run_pass), !is.na(yards_to_endzone)) %>% 
+  mutate(run_pass = as.factor(run_pass))
+
+# start with using weeks 1-5 to predict week 6 and see how it goes
+training_df <- team_df %>% 
+  filter(week < 6) %>% select(-possession_team, -week)
+testing_df <- team_df %>% 
+  filter(week %in% c(6, 7, 8)) %>% select(-possession_team, -week)
+
+grid_large <- tibble(neighbors = seq(0, 100, by = 5)[-1])
+
+knn_tune_spec <- nearest_neighbor(mode = "classification", neighbors = tune("neighbors"))
+
+train_cv <- vfold_cv(training_df, v = 10)
+
+knn_err <- knn_tune_spec %>%
+  tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_large) %>%
+  collect_metrics() %>%
+  dplyr::filter(.metric == "accuracy") %>%
+  dplyr::mutate(error = 1 - mean)
+
+ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+
+knn_min_range <- knn_err$neighbors[knn_err$error == min(knn_err$error)]
+
+grid_seq <- seq(knn_min_range[1] - 4, knn_min_range[1] + 4, by = 1)
+grid_small <-  tibble(neighbors = grid_seq)
+
+knn_err <- knn_tune_spec %>%
+  tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_small) %>%
+  collect_metrics() %>%
+  dplyr::filter(.metric == "accuracy") %>%
+  dplyr::mutate(error = 1 - mean)
+
+ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+
+min_k <- min(knn_err$neighbors[knn_err$error == min(knn_err$error)])
+
+knn_fit <- nearest_neighbor(mode = "classification", neighbors = min_k) %>% 
+  fit(data = training_df, run_pass ~ .)
+
+train_fit <- knn_fit %>% pluck("fit")
+
+test_predict <- knn_fit %>% augment(testing_df)
+
+test_predict %>% conf_mat(truth = run_pass, estimate = .pred_class)
+
+```
+
+
+
