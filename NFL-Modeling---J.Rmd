@@ -121,6 +121,13 @@ for(lam in lambda){
 
 ```{r}
 
+#Create a line plot of 
+lasso_ests |>
+  filter(term != "(Intercept)") |>
+  ggplot() +
+  geom_line(aes(penalty, estimate, group = term, colour = term)) +
+  coord_trans(x = "log10")+
+  theme(legend.position="none")
 
 ```
 
