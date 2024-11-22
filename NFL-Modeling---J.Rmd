@@ -145,6 +145,10 @@ lasso_ests |>
 #Create a data frame for tuning lambda
 tune_df <- data.frame(lambda=lambda)
 
+#Use the first 6 weeks of data as training and the last 3 as testing
+nfl_train <- nfl_trimmed %>%
+  filter(week<=6)
+
 #Perform 10-fold cross-validation to get an estimate of test MSE for each
 #labmda in our grid
 nfl_10fld_cv <- vfold_cv(nfl_trimmed, v=10)
@@ -162,13 +166,15 @@ lasso_workflow <-workflow() %>%
 #Perform the cross validation
 tune_results <- tune_grid( lasso_workflow,
                            resamples=nfl_10fld_cv,
-                           grid=tune_df)
+                           grid=50)
 
 #Determine the best lambda value
 best_lambda <- select_best(tune_results, metric="accuracy") #best lambda=0.01
 
-#SEEMS SUSPICIOUS THAT THE OPTIMUM LAMBDA JUST SO HAPPENS TO BE THE FIRST ONE
-#IN THE GRID....
+#Create the lasso model with the optimum lambda
+final_lasso_workflow <- finalize_workflow(lasso_workflow,  best_lambda)
+
+final_lasso_model <- fit(final_lasso_workflow, data=)
 
 
 ```
