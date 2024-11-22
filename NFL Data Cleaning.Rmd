@@ -158,6 +158,16 @@ final_df <- plays_clean %>%
   # change run_pass to a factor for classification modeling
   mutate(run_pass = as.factor(run_pass))
 
+clean_column_names <- c("game_id", "play_id", "possession_team", "week", "run_pass", 
+                      "down", "yards_to_go", "redzone",
+                      "sec_in_half", "offense_formation", "receiver_alignment", 
+                      "epa_lag", "curr_win_percentage", "form_change",
+                      "wr_motion", "te_motion","rb_motion",
+                      "wr_atsnap", "te_atsnap", "rb_atsnap")
+
+colnames(final_df) <- clean_column_names
+
+
 write.csv(final_df, "data/modeling_data_frame.csv", row.names = F)
 ```
 
