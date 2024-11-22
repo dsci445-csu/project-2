@@ -618,20 +618,57 @@ join them back together into each row
 final_df_rd <- c("gameId", "playId", "rpInd", "offenseFormation", "epaLag",
                  "wrMotion", "teMotion","rbMotion",
                  "wrAtSnap", "teAtSnap", "rbAtSnap", "shiftSinceLineset",
-                 "receiverAlignment", "preSnapHomeTeamWinProbability",
-                 "preSnapVisitorTeamWinProbability", "changeOfFormation","teamId")
+                 "receiverAlignment", "currWinPercentage", "changeOfFormation","teamId",
+                 "secondsLeftInHalf")
 
-#still ahve inmotion at ball sanp
 
-#currently 
 
 
 final_df_rd
 ```
+Provided:
+
+gameID, playID, offenseFormation, shiftSinceLineset, receiverAlginment,
+presnapHomewinprob,  presnap Visitor, TeamId
+
+
+To Calculate:
+
+
+  Completed:
+  -rpInd, epaLag, wrMotion, all the motions, 
+  
+  
+  
+  
+  
+first 6 weeks training
+last 3 weeks testing
+
+
+1st predicts 2nd
+1,2 predict 3rd
+1,2,3 predict 4
+etc.
+  
+  
+
 
 
   
-  
+MOdel
+
+lasso on whole thing, drop anythign at 0, logistic regression
+
+
+lasso into logistic-Justin
+random forrest-Gabe
+knn- Chandler
+svm- whoever gets there first
+
+
+
+
   
 
 
