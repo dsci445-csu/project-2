@@ -13,8 +13,66 @@ knitr::opts_chunk$set(echo = TRUE)
 library(broom)
 library(GGally)
 library(tidyr)
-library(tidymodels) 
+#library(tidymodels) 
 library(kknn)
 library(tidyverse)
 library(ggh4x)
 ```
+
+
+```{r}
+off_pos <- c("G", "C", "WR", "T", "QB","RB", "TE")
+
+test <- player_play %>%
+  left_join(players, by = "nflId") %>% 
+  filter(position %in% off_pos) %>% 
+  group_by(gameId, playId) %>% 
+  summarise(nshift = sum(shiftSinceLineset, na.rm = TRUE),
+            nmotion = sum(motionSinceLineset, na.rm = TRUE),
+            natsnap = sum(inMotionAtBallSnap, na.rm = TRUE),
+            player_move = nmotion - nshift) %>%  
+  filter(player_move > 0) %>% 
+  filter(natsnap > 0)
+  
+  
+  cor(test$natsnap, test$nmotion)
+  #filter(player_move > 2)#filter(nshift > 0)#filter(natsnap == player_move)#%>% filter(player_move > 2)
+```
+Motions contained shifts
+
+```{r}
+play_moves <- player_play %>% 
+  mutate(player_motion = ifelse(shiftSinceLineset == motionSinceLineset, 0, 1)) %>% 
+  group_by(gameId, playId) %>% 
+  left_join(players, by = "nflId") %>%
+  summarise(
+    form_change = ifelse(sum(shiftSinceLineset, na.rm = TRUE) > 0, 1, 0),
+    # Note: removed player_move line that was incomplete
+    rb_motion = sum(position == "RB" & 
+                   player_motion, na.rm = TRUE) > 0,
+    te_motion = sum(position == "TE" & 
+                   player_motion, na.rm = TRUE) > 0,
+    wr_motion = sum(position == "WR" & 
+                   player_motion, na.rm = TRUE) > 0,
+    rb_atsnap = sum(position == "RB" & 
+                   inMotionAtBallSnap, na.rm = TRUE) > 0,
+    TE_atsnap = sum(position == "TE" & 
+                   inMotionAtBallSnap, na.rm = TRUE) > 0,
+    WR_atsnap = sum(position == "WR" & 
+                   inMotionAtBallSnap, na.rm = TRUE) > 0,
+  ) #%>% filter(form_change == 1)
+```
+
+
+presnap tracking distance
+
+shift: at least 2.5 yards since line start --> change of formation
+motion: based on speed in a given window
+
+
+
+
+
+
+
+
