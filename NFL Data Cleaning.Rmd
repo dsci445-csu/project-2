@@ -145,7 +145,7 @@ Merge cleaned data frames into final.
 ```{r final-df-merging}
 # choose columns for modeling
 final_df_columns <- c("gameId", "playId", "possessionTeam", "week", "run_pass", 
-                      "down", "yardsToGo", "redzone",
+                      "down", "yardsToGo", "yards_to_endzone", "redzone",
                       "sec_in_half", "offenseFormation", "receiverAlignment", 
                       "epa_lag", "curr_win_percentage", "form_change",
                       "wr_motion", "te_motion","rb_motion",
@@ -159,7 +159,7 @@ final_df <- plays_clean %>%
   mutate(run_pass = as.factor(run_pass))
 
 clean_column_names <- c("game_id", "play_id", "possession_team", "week", "run_pass", 
-                      "down", "yards_to_go", "redzone",
+                      "down", "yards_to_go", "yards_to_endzone", "redzone",
                       "sec_in_half", "offense_formation", "receiver_alignment", 
                       "epa_lag", "curr_win_percentage", "form_change",
                       "wr_motion", "te_motion","rb_motion",
