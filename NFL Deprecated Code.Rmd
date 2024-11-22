@@ -1,0 +1,90 @@
+---
+title: "Deprecated Code"
+author: "Chandler Grote"
+date: "2024-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE, eval=F}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Using this file for deprecated code.
+
+Keeping in case later use is needed. For now it is not and will be put here in limbo
+
+## Clean each tracking week to only presnap events
+```{r deprecated-tracking-filtering}
+
+#Use a for loop to filter all 9 weeks of tracking data.
+# for (i in c(1:9)){
+#   #Add a print statement to track progress
+#   print(paste("Filtering Tracking Week", i))
+#   
+#   file_name <- paste0("data/tracking_week_", i, ".csv")
+#   
+#   #Create a dummy dataframe containing the current weeks tracking data
+#   temp <- read.csv(file_name)
+#   
+#   #We are only interested in *meaningful* pre-snap movement so remove all
+#   #AFTER_SNAP data and remove entries with minimal distance traveled.
+#   temp <- temp %>%   filter(frameType!="AFTER_SNAP", dis>0.1)
+#   
+#   #Write the filtered data to a new file
+#   write.csv(temp, paste0("data/presnap_events_week_", i, ".csv"), row.names = F)
+# }
+```
+
+## Find the frame where the line was set for each play
+```{r deprecated-line-set-frame}
+# print("Initialize master line set df with week 1")
+# 
+# file_name <- paste0("data/tracking_week_1.csv")
+# 
+# #Load in the first week of tracking data
+# temp <- read.csv(file_name)
+# 
+# #Create the master line set data frame
+# line_set_all <- temp %>%
+#   
+#   #Filter out the balls tracking data by removing NA values from the nflId
+#   #column. Filter by the line_set event so we can identify the appropriate frame
+#   filter(!is.na(nflId), event == "line_set") %>%
+#   
+#   #Group the data by game and play
+#   group_by(gameId, playId) %>%
+#   
+#   #Create a new variable that store the frameId of the line_set event
+#   reframe(line_set_frame = frameId) %>%
+#   group_by(gameId, playId) %>%
+#   
+#   #Remove the duplicate rows so we are left with a single line_set_frame value
+#   #for each play
+#   filter(!duplicated(line_set_frame)) %>%
+#   ungroup()
+# 
+# #Use a for loop to do the same process for the remaining weeks of tracking data
+# #and add them to the master line set data frame.
+# for (i in c(2:9)){
+#   #Add a print statement to track progress
+#   print(paste("Adding week", i, "to master line set df"))
+#   
+#   file_name <- paste0("data/tracking_week_", i, ".csv")
+#   
+#   temp <- read.csv(file_name)
+#   
+#   line_set_temp <- temp %>%
+#     filter(!is.na(nflId), event == "line_set") %>%
+#     group_by(gameId, playId) %>%
+#     reframe(line_set_frame = frameId) %>%
+#     group_by(gameId, playId) %>%
+#     filter(!duplicated(line_set_frame)) %>%
+#     ungroup()
+#   
+#   line_set_all <- line_set_all %>% rbind(line_set_temp)
+# }
+# 
+# #Write the master data frame to a new file for later use.
+# write.csv(line_set_all, paste0("data/tracking_line_set_frames.csv"), row.names = F)
+```
+

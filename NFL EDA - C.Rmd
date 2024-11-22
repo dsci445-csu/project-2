@@ -101,6 +101,7 @@ epa_lag_test <- week_1_plays %>%
   ungroup() %>%
   arrange(gameId, playId)
 
+# this is just a visualization for epa lag on third downs
 third_down_epa <- epa_lag_test %>%
   filter(down == 3) %>%
   select(yardsToGo, yardsGained, expectedPointsAdded) %>%

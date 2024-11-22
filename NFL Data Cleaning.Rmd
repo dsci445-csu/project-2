@@ -21,77 +21,147 @@ Each code block in this file should only need to run once. These are large csv's
 --NOTE: These are broken out for now but should be combined into one loop before final submission for run time and simplicity. Leave broken out for now as these chunks may need to be run separately if tweaks are made to the cleaning process before final submission.
 
 
-## Clean each tracking week to only presnap events
-```{r}
+## Combining functions and cleaning methods into one process from other files.
+Read the data files
+```{r file-reading}
+plays <- read.csv("data/plays.csv")
 
-#Use a for loop to filter all 9 weeks of tracking data.
-for (i in c(1:9)){
-  #Add a print statement to track progress
-  print(paste("Filtering Tracking Week", i))
-  
-  file_name <- paste0("data/tracking_week_", i, ".csv")
-  
-  #Create a dummy dataframe containing the current weeks tracking data
-  temp <- read.csv(file_name)
-  
-  #We are only interested in *meaningful* pre-snap movement so remove all
-  #AFTER_SNAP data and remove entries with minimal distance traveled.
-  temp <- temp %>%   filter(frameType!="AFTER_SNAP", dis>0.1)
-  
-  #Write the filtered data to a new file
-  write.csv(temp, paste0("data/presnap_events_week_", i, ".csv"), row.names = F)
-}
+games <- read.csv("data/games.csv")
+
+player_play <- read.csv("data/player_play.csv")
+
+players <- read.csv("data/players.csv")
 ```
 
-## Find the frame where the line was set for each play
-```{r}
-print("Initialize master line set df with week 1")
 
-file_name <- paste0("data/tracking_week_1.csv")
+This output will be the final data frame used for modeling.
 
-#Load in the first week of tracking data
-temp <- read.csv(file_name)
+```{r plays-data-frame}
+## Cleaning Plays data frame
 
-#Create the master line set data frame
-line_set_all <- temp %>%
-  
-  #Filter out the balls tracking data by removing NA values from the nflId
-  #column. Filter by the line_set event so we can identify the appropriate frame
-  filter(!is.na(nflId), event == "line_set") %>%
-  
-  #Group the data by game and play
-  group_by(gameId, playId) %>%
-  
-  #Create a new variable that store the frameId of the line_set event
-  reframe(line_set_frame = frameId) %>%
-  group_by(gameId, playId) %>%
-  
-  #Remove the duplicate rows so we are left with a single line_set_frame value
-  #for each play
-  filter(!duplicated(line_set_frame)) %>%
+# first get general df calculations and filtering.
+plays_clean <- plays %>% filter(playNullifiedByPenalty == "N", # remove penalty plays
+                                qbKneel == 0, # remove qb kneel plays
+                                (dropbackType != "UNKNOWN" | is.na(dropbackType))) %>% # remove unknown dropbacks
+  arrange(gameId, playId) %>% # sort by game and by play so each game is in order
+  #first case when determines run pass on the play
+  mutate(run_pass = case_when(pff_runPassOption == 1 ~ "run",
+                              is.na(dropbackType) ~ "run",
+                              str_detect(dropbackType, "RUN|SNEAK") ~ "run",
+                              T ~ "pass"),
+         # function to find how many total yards to opposing endzone
+         yards_to_endzone = ifelse(possessionTeam == yardlineSide, abs(yardlineNumber - 100), yardlineNumber),
+         # redzone indication
+         redzone = ifelse(yards_to_endzone <= 20, T, F),
+         # indication for which half of the game the play is in
+         half = ifelse(quarter <= 2, 1, 2),
+         # how many total seconds in the half
+         # this is useful as the ball changes possession b/t halves but not quarters
+         # --NOTE: do not break up following summation. 
+         # It runs off the page but R doesn't like doing arithmetic on multiple lines
+         sec_in_half = ((as.numeric(str_extract(gameClock, "[:digit:]+(?=:)")) * 60) + as.numeric(str_extract(gameClock, "(?<=:)[:digit:]+"))) + ifelse(quarter %in% c(1, 3), 900, 0))
+
+# indication variables for a new half, game and possession
+plays_clean$new_half <- plays_clean$half != c(0, plays_clean$half[-nrow(plays_clean)])
+plays_clean$new_game <- plays_clean$gameId != c(0, plays_clean$gameId[-nrow(plays_clean)])
+plays_clean$new_possession <- (plays_clean$possessionTeam != c(0, plays_clean$possessionTeam[-nrow(plays_clean)])) | plays_clean$new_half
+
+# -- calculate the drive of the team. needed for EPA lag per drive.
+
+# set first row of variables
+teams <- c(plays_clean$possessionTeam[1], plays_clean$defensiveTeam[1]) # team names in game
+drive <- c(1, 0) # which drive each team is on initially
+names(drive) <- teams # name the drives vector for easy calling
+plays_clean$drive <- c(1, rep(0, nrow(plays_clean) - 1)) # initial new column for drives
+
+# loop through rows 2 to end of df
+for(i in c(2:nrow(plays_clean))){
+  # check for a new game
+  if(plays_clean$new_game[i]){
+    # update the following vectors with new game info
+    teams <- c(plays_clean$possessionTeam[i], plays_clean$defensiveTeam[i])
+    drive <- c(1, 0)
+    names(drive) <- teams
+  }
+  # check for a new possession - includes a new half
+  else if(plays_clean$new_possession[i]){
+    # increment the drive of the current possession team
+    drive[plays_clean$possessionTeam[i]] <- drive[plays_clean$possessionTeam[i]] + 1
+  }
+  # assign the drive number for the current possession team to the column in the df
+  plays_clean$drive[i] <- drive[plays_clean$possessionTeam[i]]
+}
+
+# now that we have drives we can do EPA lag
+plays_clean <- plays_clean %>%
+  group_by(gameId, possessionTeam, drive) %>% # grouping
+  mutate(epa_lag = c(0, expectedPointsAdded[-n()])) %>% # get the lag per drive starting at 0
+  ungroup() %>% # ungroup
+  arrange(gameId, playId) # arrange for easy viewing
+
+# home, away, and week indications for each game
+home_away <- games %>% select(gameId, week, homeTeamAbbr, visitorTeamAbbr)
+
+# attributing win percentage for current possession team
+plays_clean <- plays_clean %>% 
+  # join the home_away df
+  left_join(home_away, by = "gameId") %>%
+  # attribute the correct pre-snap win percentage column to the team with the ball
+  mutate(curr_win_percentage = ifelse(possessionTeam == homeTeamAbbr, preSnapHomeTeamWinProbability, preSnapVisitorTeamWinProbability))
+```
+
+```{r player-plays-data-frame}
+## now cleaning player plays data frame
+
+play_moves <- player_play %>% 
+  # motionSinceLineset often contains the shiftsSinceLineset column
+  # player_motion is defined when they are different to isolate motions from shifts
+  mutate(player_motion = ifelse(shiftSinceLineset == motionSinceLineset, 0, 1)) %>% 
+  group_by(gameId, playId) %>% # grouping by game then player
+  left_join(players, by = "nflId") %>% # join players df to get positions
+  summarise(
+    # formation change happens when at least one shift occurs
+    form_change = ifelse(sum(shiftSinceLineset, na.rm = TRUE) > 0, 1, 0),
+    # Note: removed player_move line that was incomplete
+    # player motion indicated when at least one of those players motions
+    rb_motion = sum(position == "RB" & 
+                      player_motion, na.rm = TRUE) > 0,
+    te_motion = sum(position == "TE" & 
+                      player_motion, na.rm = TRUE) > 0,
+    wr_motion = sum(position == "WR" & 
+                      player_motion, na.rm = TRUE) > 0,
+    # same as player motion but only at the snap of the ball
+    rb_atsnap = sum(position == "RB" & 
+                      inMotionAtBallSnap, na.rm = TRUE) > 0,
+    te_atsnap = sum(position == "TE" & 
+                      inMotionAtBallSnap, na.rm = TRUE) > 0,
+    wr_atsnap = sum(position == "WR" & 
+                      inMotionAtBallSnap, na.rm = TRUE) > 0,
+  ) %>%
   ungroup()
 
-#Use a for loop to do the same process for the remaining weeks of tracking data
-#and add them to the master line set data frame.
-for (i in c(2:9)){
-  #Add a print statement to track progress
-  print(paste("Adding week", i, "to master line set df"))
-  
-  file_name <- paste0("data/tracking_week_", i, ".csv")
-  
-  temp <- read.csv(file_name)
-  
-  line_set_temp <- temp %>%
-    filter(!is.na(nflId), event == "line_set") %>%
-    group_by(gameId, playId) %>%
-    reframe(line_set_frame = frameId) %>%
-    group_by(gameId, playId) %>%
-    filter(!duplicated(line_set_frame)) %>%
-    ungroup()
-  
-  line_set_all <- line_set_all %>% rbind(line_set_temp)
-}
-
-#Write the master data frame to a new file for later use.
-write.csv(line_set_all, paste0("data/tracking_line_set_frames.csv"), row.names = F)
 ```
+
+Merge cleaned data frames into final.
+```{r final-df-merging}
+# choose columns for modeling
+final_df_columns <- c("gameId", "playId", "possessionTeam", "week", "run_pass", 
+                      "down", "yardsToGo", "redzone",
+                      "sec_in_half", "offenseFormation", "receiverAlignment", 
+                      "epa_lag", "curr_win_percentage", "form_change",
+                      "wr_motion", "te_motion","rb_motion",
+                      "wr_atsnap", "te_atsnap", "rb_atsnap")
+
+# join plays_clean and play_moves and select columns
+final_df <- plays_clean %>%
+  left_join(play_moves, by = c("gameId", "playId")) %>%
+  select(all_of(final_df_columns)) %>%
+  # change run_pass to a factor for classification modeling
+  mutate(run_pass = as.factor(run_pass))
+
+write.csv(final_df, "data/modeling_data_frame.csv", row.names = F)
+```
+
+
+
+
