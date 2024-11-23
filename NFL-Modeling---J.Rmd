@@ -74,20 +74,18 @@ library(glmnet)
 #Load in the data set
 nfl_df <- read.csv("data/modeling_data_frame.csv")
 
-#Create a data frame with just the predictors to tune labmda values
-nfl_trimmed <- nfl_df %>%
-  select(-game_id, -week, -play_id, -possession_team)
+
 
 #Make the run pass variable a factor
-nfl_trimmed$run_pass <- as.factor(nfl_trimmed$run_pass)
+nfl_df$run_pass <- as.factor(nfl_df$run_pass)
 
 #Convert the boolean columns into numeric ones
 bool_cols <- c("redzone", "wr_motion", "te_motion", "rb_motion",
                "wr_atsnap", "te_atsnap", "rb_atsnap")
-nfl_trimmed[bool_cols] <- lapply(nfl_trimmed[bool_cols], as.numeric)
+nfl_df[bool_cols] <- lapply(nfl_df[bool_cols], as.numeric)
 
 #Remove NA values
-nfl_trimmed <- nfl_trimmed %>%
+nfl_df <- nfl_df %>%
   drop_na()
 
 #Use a lasso model to do varaible selection.
@@ -96,7 +94,12 @@ nfl_trimmed <- nfl_trimmed %>%
 lambda <- lambda <- 10^seq(-2, 10, length.out = 100)
 
 #Create a recipe for the lasso model and normalize the predictors.
-lasso_rec <- recipe(run_pass~., data=nfl_trimmed) %>%
+lasso_rec <- recipe(run_pass~., data=nfl_df) %>%
+  
+  #Remove unnecessary variables
+  step_rm(game_id, play_id, possession_team,week) %>%
+  
+  step_novel(all_nominal_predictors()) %>%
   
   #Fix error for missing values by assigning them with unknown
   step_unknown(all_nominal_predictors()) %>%
@@ -123,7 +126,7 @@ for(lam in lambda){
   workflow() %>%
     add_model(lasso_spec) %>%
     add_recipe(lasso_rec) %>%
-    fit(nfl_trimmed) %>%
+    fit(nfl_df) %>%
     tidy() %>%
     bind_rows(lasso_ests)-> lasso_ests
 }
@@ -172,7 +175,7 @@ tune_df <- data.frame(lambda=lambda)
 
 #Perform 10-fold cross-validation to get an estimate of test MSE for each
 #labmda in our grid
-nfl_10fld_cv <- vfold_cv(nfl_trimmed, v=10)
+nfl_10fld_cv <- vfold_cv(nfl_df, v=10)
 
 #Specify the model
 lasso_spec <- logistic_reg(mixture = 1, penalty = tune("lambda")) %>%
@@ -195,9 +198,32 @@ best_lambda <- select_best(tune_results, metric="accuracy") #best lambda=0.01
 #Create the lasso model with the optimum lambda
 final_lasso_workflow <- finalize_workflow(lasso_workflow,  best_lambda)
 
-final_lasso_model <- fit(final_lasso_workflow, data=)
+final_lasso_model <- fit(final_lasso_workflow, data=nfl_train)
 
 
+# Generate predictions on the test dataset
+lasso_predictions <- predict(final_lasso_model, nfl_test, type = "class") %>%
+  bind_cols(nfl_test)
+
+# Create a confusion matrix
+confusion_mat <- conf_mat(
+  data = lasso_predictions,
+  truth = run_pass, # True values
+  estimate = .pred_class # Predicted values
+)
+
+# Print the confusion matrix
+print(confusion_mat)
+
+#Calculate the error rate
+tot <- 1615
+correct <- 1224
+incorrect <- 391
+err_rate <- 391/1615
+acc_rate <- 1-err_rate
+
+#Print the accuracy rate
+acc_rate
 ```
 
 ```{r}
