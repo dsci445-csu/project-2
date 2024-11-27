@@ -187,7 +187,7 @@ for(i in c(1:32)){
   # check test data against the model
   test_predict <- tryCatch({knn_fit %>% augment(testing_df)}, 
                            error = function(cond){
-                             message(conditioMessage(cond)) 
+                             print(conditionMessage(cond)) 
                              NA})
   
   if(length(is.na(test_predict)) > 1){
@@ -198,9 +198,9 @@ for(i in c(1:32)){
     test_conf_mat <- confusionMatrix(test_predict$.pred_class, test_predict$run_pass)
     model_info$conf_mat[[i]] <- test_conf_mat
   }else{
-    model_info$test_fit[[i]] <- NA
+    model_info$test_fit[[i]] <- paste(team, "errored out")
     
-    model_info$conf_mat[[i]] <- NA
+    model_info$conf_mat[[i]] <- paste(team, "errored out")
   }
   
 }
