@@ -14,6 +14,7 @@ library(tidyr)
 library(tidyverse)
 library(glmnet)
 library(kknn)
+library(caret)
 ```
 
 # Modeling 
@@ -70,65 +71,139 @@ In this document we will develop a statistical model to predict whether the offe
 ```{r data-frame-cleaning}
 nfl_df <- read.csv("data/modeling_data_frame.csv")
 
-unwanted_columns <- c("game_id", "play_id")
+# define unwanted columns to make modeling formula easier
+unwanted_columns <- c("game_id", "play_id") 
 
-df_clean <- nfl_df %>% select(-all_of(unwanted_columns))
+# clean the df to remove unwanted columns and any rows containing NA values
+df_clean <- nfl_df %>% select(-all_of(unwanted_columns)) %>% drop_na()
 ```
 
 ## KNN modeling test for one team
 
+Define getting the bye week function
+```{r}
+get_bye_week <- function(weeks){
+  # this gets the week number that is missing from the given weeks
+  bye_week <- seq(9)[!(seq(9) %in% weeks)]
+  
+  # return NA if all weeks of data are present
+  if(identical(bye_week, integer(0))){
+    return(NA)
+  }else{
+    return(bye_week)
+  }
+}
+
+test_data_for_augment <- function(model, data){
+  
+}
+```
+
+
 ```{r knn-one-team}
 set.seed(445)
-team <- "DEN"
 
-team_df <- df_clean %>% 
-  filter(possession_team == team, !is.na(run_pass), !is.na(yards_to_endzone)) %>% 
-  mutate(run_pass = as.factor(run_pass))
+model_info <- list("nfl_team" = unique(df_clean$possession_team),
+                   "model" = as.list(seq(32)),
+                   "bye_week" = as.list(seq(32)),
+                   "train_fit" = as.list(seq(32)),
+                   "test_fit" = as.list(seq(32)),
+                   "conf_mat" = as.list(seq(32)))
 
-# start with using weeks 1-5 to predict week 6 and see how it goes
-training_df <- team_df %>% 
-  filter(week < 6) %>% select(-possession_team, -week)
-testing_df <- team_df %>% 
-  filter(week %in% c(6, 7, 8)) %>% select(-possession_team, -week)
-
+# initialize a large grid of k vlaues for CV
 grid_large <- tibble(neighbors = seq(0, 100, by = 5)[-1])
 
-knn_tune_spec <- nearest_neighbor(mode = "classification", neighbors = tune("neighbors"))
+break_teams <- c("ATL", "NO")
 
-train_cv <- vfold_cv(training_df, v = 10)
-
-knn_err <- knn_tune_spec %>%
-  tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_large) %>%
-  collect_metrics() %>%
-  dplyr::filter(.metric == "accuracy") %>%
-  dplyr::mutate(error = 1 - mean)
-
-ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
-
-knn_min_range <- knn_err$neighbors[knn_err$error == min(knn_err$error)]
-
-grid_seq <- seq(knn_min_range[1] - 4, knn_min_range[1] + 4, by = 1)
-grid_small <-  tibble(neighbors = grid_seq)
-
-knn_err <- knn_tune_spec %>%
-  tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_small) %>%
-  collect_metrics() %>%
-  dplyr::filter(.metric == "accuracy") %>%
-  dplyr::mutate(error = 1 - mean)
-
-ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
-
-min_k <- min(knn_err$neighbors[knn_err$error == min(knn_err$error)])
-
-knn_fit <- nearest_neighbor(mode = "classification", neighbors = min_k) %>% 
-  fit(data = training_df, run_pass ~ .)
-
-train_fit <- knn_fit %>% pluck("fit")
-
-test_predict <- knn_fit %>% augment(testing_df)
-
-test_predict %>% conf_mat(truth = run_pass, estimate = .pred_class)
-
+for(i in c(1:32)){
+  team <- model_info$nfl_team[i]
+  
+  # if(team %in% break_teams){next}
+  
+  print(paste("Working on team", team))
+  
+  team_df <- df_clean %>% 
+    filter(possession_team == team) %>% 
+    mutate(run_pass = as.factor(run_pass))
+  
+  weeks <- sort(unique(team_df$week))
+  
+  model_info$bye_week[[i]] <- get_bye_week(weeks)
+  
+  # training is everything but the last 3 weeks in the data for that team.
+  # this could be more for some teams if they did not have a bye week in first 9 weeks
+  training_df <- team_df %>% 
+    filter(week <= weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  # testing data is all weeks not in training
+  testing_df <- team_df %>% 
+    filter(week > weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  
+  knn_tune_spec <- nearest_neighbor(mode = "classification", neighbors = tune("neighbors"))
+  
+  train_cv <- vfold_cv(training_df, v = 10)
+  
+  knn_err <- knn_tune_spec %>%
+    tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_large) %>%
+    collect_metrics() %>%
+    dplyr::filter(.metric == "accuracy") %>%
+    dplyr::mutate(error = 1 - mean)
+  
+  # plot if necessary
+  # ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+  
+  # get minimum k value from first CV
+  knn_min_range <- knn_err$neighbors[knn_err$error == min(knn_err$error)]
+  print(paste("Min K is near", knn_min_range))
+  
+  # build a narrowing k range around the minimum found
+  grid_seq <- seq(knn_min_range[1] - 4, knn_min_range[1] + 4, by = 1)
+  grid_small <-  tibble(neighbors = grid_seq)
+  
+  # re-run to find overall minimum
+  knn_err <- knn_tune_spec %>%
+    tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_small) %>%
+    collect_metrics() %>%
+    dplyr::filter(.metric == "accuracy") %>%
+    dplyr::mutate(error = 1 - mean)
+  
+  
+  # plot if necessary
+  # ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+  
+  # get new min k
+  min_k <- min(knn_err$neighbors[knn_err$error == min(knn_err$error)])
+  
+  print(paste("Overall Min K is", min_k))
+  
+  # fit the model with k value found in CV
+  knn_fit <- nearest_neighbor(mode = "classification", neighbors = min_k) %>% 
+    fit(data = training_df, run_pass ~ .)
+  model_info$model[[i]] <- knn_fit
+  
+  # get the fit from the tidy model
+  train_fit <- knn_fit %>% pluck("fit")
+  model_info$train_fit[[i]] <- train_fit
+  
+  # check test data against the model
+  test_predict <- tryCatch({knn_fit %>% augment(testing_df)}, 
+                           error = function(cond){
+                             message(conditioMessage(cond)) 
+                             NA})
+  
+  if(length(is.na(test_predict)) > 1){
+    model_info$test_fit[[i]] <- test_predict
+    
+    # test_predict %>% conf_mat(truth = run_pass, estimate = .pred_class)
+    
+    test_conf_mat <- confusionMatrix(test_predict$.pred_class, test_predict$run_pass)
+    model_info$conf_mat[[i]] <- test_conf_mat
+  }else{
+    model_info$test_fit[[i]] <- NA
+    
+    model_info$conf_mat[[i]] <- NA
+  }
+  
+}
 ```
 
 
