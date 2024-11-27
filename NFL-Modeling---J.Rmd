@@ -171,8 +171,6 @@ nfl_test <- nfl_lasso_df %>%
 #Create a data frame for tuning lambda
 tune_df <- data.frame(lambda=lambda)
 
-
-
 #Perform 10-fold cross-validation to get an estimate of test MSE for each
 #labmda in our grid
 nfl_10fld_cv <- vfold_cv(nfl_df, v=10)
@@ -190,6 +188,9 @@ lasso_workflow <-workflow() %>%
 #Perform the cross validation
 tune_results <- tune_grid( lasso_workflow,
                            resamples=nfl_10fld_cv,
+                           #For some reason it works if I let the labmda values
+                           #be created automatically but not when I try to use
+                           #the labmda values in the tuning 
                            grid=50)
 
 #Determine the best lambda value
@@ -199,6 +200,8 @@ best_lambda <- select_best(tune_results, metric="accuracy") #best lambda=0.01
 final_lasso_workflow <- finalize_workflow(lasso_workflow,  best_lambda)
 
 final_lasso_model <- fit(final_lasso_workflow, data=nfl_train)
+
+final_lasso_model %>% pluck("fit")
 
 
 # Generate predictions on the test dataset
