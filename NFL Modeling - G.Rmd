@@ -1,0 +1,22 @@
+---
+title: "NFL Modeling - G"
+output: html_document
+date: "2024-11-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(dplyr)
+library(ranger)
+library(tidyverse)
+```
+
+Data
+```{r}
+data <- read.csv("data/modeling_data_frame.csv")
+```
+
