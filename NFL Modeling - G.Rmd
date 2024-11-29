@@ -17,6 +17,195 @@ library(tidyverse)
 
 Data
 ```{r}
-data <- read.csv("data/modeling_data_frame.csv")
+model_data <- read.csv("C:/Users/gabem/OneDrive/Documents/GitHub/project-2/data/modeling_data_frame.csv")
+```
+
+Get data for each team split into:
+full training(1-6), full testing(7-9)
+recent training(6-8), recent testing(9)
+
+Mock list structure
+```{r}
+team_results <- list()
+
+teams <- data %>% select(possession_team) %>% distinct() %>% pull()
+
+for (team in teams){
+  
+  #Initialize  team 
+    team_results[[team]] <- list(
+        data = list(),
+        models = list(
+          full = list(
+            model = NA,
+            weight = list(
+              type = NA,
+              value = NA
+            ),
+            opt = NA,
+            confmat = NA,
+            confmat_opt = NA
+          ),
+          rec = list(
+            model = NA,
+            weight = list(
+              type = NA,
+              value = NA
+            ),
+            opt = NA,
+            confmat = NA,
+            confmat_opt = NA
+          )
+        )
+    )
+  
+  #Filter team data and weeks played
+  team_data <- model_data %>% filter(possession_team == team)
+  weeks <- team_data %>% select(week) %>% distinct() %>% pull()
+  
+  ## Get weeks for both training and testing types
+  full_test_weeks <- tail(weeks, 3)
+  full_train_weeks <- weeks[1:(length(weeks)-3)]
+  
+  rec_test_weeks <- tail(weeks, 1)
+  rec_train_weeks <- weeks[(length(weeks)-3):(length(weeks)-1)]
+  
+
+  
+  #Fill data for team
+  team_results[[team]]$data$full_train <- team_data %>% filter(week %in% full_train_weeks)
+  team_results[[team]]$data$full_test <- team_data %>% filter(week %in% full_test_weeks)
+  team_results[[team]]$data$rec_train <- team_data %>% filter(week %in% rec_train_weeks)
+  team_results[[team]]$data$rec_test <- test_data %>% filter(week %in% rec_test_weeks)
+  
+  ##### Modeling #####
+  
+  # Weights
+  
+  ## Weights Full
+  n_run_full <- sum(team_results[[team]]$data$full_train$run_pass == "run")
+  n_pass_full <- sum(team_results[[team]]$data$full_train$run_pass == "pass")
+  
+  if (n_run_full > n_pass_full) {
+    full_weight_ratio = n_run_full/n_pass_full
+    
+    full_weight_vector <- numeric(nrow(team_results[[team]]$data$full_train))
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "run"] <- 1
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "pass"] <- full_weight_ratio
+    
+    full_weight_class <- "pass"
+    
+  } else if (n_pass_full > n_run_full){
+    
+    full_weight_ratio = n_pass_full/n_run_full
+    
+    full_weight_vector <- numeric(nrow(team_results[[team]]$data$full_train))
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "pass"] <- 1
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "run"] <- full_weight_ratio
+    
+    full_weight_class <- "run"
+    
+  }
+  
+  ## Weights Rec
+  
+  n_run_rec <- sum(team_results[[team]]$data$rec_train$run_pass == "run")
+  n_pass_rec <- sum(team_results[[team]]$data$rec_train$run_pass == "pass")
+  
+  if (n_run_rec > n_pass_rec) {
+    rec_weight_ratio = n_run_rec/n_pass_rec
+    
+    rec_weight_vector <- numeric(nrow(team_results[[team]]$data$rec_train))
+    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "run"] <- 1
+    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "pass"] <- rec_weight_ratio
+    
+    rec_weight_class <- "pass"
+    
+    
+    
+  } else if (n_pass_rec > n_run_rec){
+    
+    rec_weight_ratio = n_pass_rec/n_run_rec
+    
+    rec_weight_vector <- numeric(nrow(team_results[[team]]$data$rec_train))
+    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "pass"] <- 1
+    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "run"] <- rec_weight_ratio
+    
+    rec_weight_class <- "run"
+    
+  }
+  
+  #Store weight class
+  team_results[[team]]$models$full$weight$type <- full_weight_class
+  team_results[[team]]$models$full$weight$value <- full_weight_ratio
+  
+
+  
+  # Tune grid
+
+  tuneGrid <- expand.grid(
+    mtry = seq(1, 16, 1),
+    min.node.size = c(1, 7, 12, 20, 40),
+    splitrule = c("gini", "extratrees")
+  )
+  
+    ctrl <- trainControl(
+    method = "cv",
+    classProbs = TRUE,
+    summaryFunction = twoClassSummary,
+    search = "grid",
+    number = 7,
+    savePredictions = "final"
+  )
+    
+    
+  # Full model
+  
+  set.seed(120220)
+  full_rf <- train(
+    run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+               receiver_alignment + epa_lag + curr_win_percentage + form_change + wr_motion +
+               te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+    data = team_results[[team]]$data$full_train,
+    method = "ranger",
+    tuneGrid = tuneGrid,
+    trControl = ctrl,
+    metric = "ROC",
+    importance = 'permutation',
+    num.trees = 500,
+    weights = full_weight_vector
+  )
+  
+  team_results[[team]]$models$full$model <- full_rf
+  
+  
+  # Prediction Accuracy
+  
+  #Optimal Treshold
+  train_predictions <- predict(full_rf, new_data = team_results[[team]]$data$full_train, type = "prob")
+  roc_obj <- roc(team_results[[team]]$data$full_train, train_predictions$run)
+  opt <- coords(roc_obj, "best", ret = "threshold", best.method = "youden")[[1]]
+  
+  team_results[[team]]$models$full$opt <- opt
+  
+  #Confusion matrix raw
+  class_raw <- predict(full_rf, new_data = team_results[[team]]$data$full_test)
+  
+  full_confmat <- confusionMatrix(class_raw, team_results[[team]]$data$full_test, positive = "run")
+  
+  team_results[[team]]$models$full$conf_mat <- full_confmat
+  
+  #Confusion matrix altered
+  pred_probs_full <- predict(full_rf, new_data = team_results[[team]]$data$full_test, type = "prob")$run
+  class_alt <- as.factor(ifelse(pred_probs_full > opt, "run", "pass"))
+  
+  
+}
+
+# data %>% group_by(possession_team) %>% 
+#   summarise(prop_run = sum(run_pass == "run")/n(),
+#             prop_pass = sum(run_pass == "pass")/n())
+final_df
+levels(final_df$run_pass)
 ```
 

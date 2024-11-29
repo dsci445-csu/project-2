@@ -10,10 +10,11 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 library(broom)
 library(GGally)
 library(tidyr)
-library(tidymodels) 
+#library(tidymodels) 
 library(kknn)
 library(tidyverse)
 library(ggh4x)
+library(dplyr)
 ```
 
 Each code block in this file should only need to run once. These are large csv's that are being loaded and this file is intended to avoid loading them every time during the rest of the project. When running a code chunk, run the entire chunk and wait for it to finish.
