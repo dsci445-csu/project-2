@@ -17,7 +17,16 @@ library(tidyverse)
 
 Data
 ```{r}
-model_data <- read.csv("C:/Users/gabem/OneDrive/Documents/GitHub/project-2/data/modeling_data_frame.csv")
+model_data <- read.csv("C:/Users/gabem/OneDrive/Documents/GitHub/project-2/data/modeling_data_frame.csv") %>% 
+  mutate(run_pass = as.factor(run_pass),
+         down = as.factor(down),
+         offense_formation = as.factor(offense_formation),
+         form_change = as.factor(form_change),
+         ) %>% 
+  na.omit()
+
+#model_data %>% select(offense_formation) %>% distinct()
+#model_data %>% filter(is.na(redzone)) %>% group_by(possession_team) %>% summarise(n=n())
 ```
 
 Get data for each team split into:
@@ -28,36 +37,51 @@ Mock list structure
 ```{r}
 team_results <- list()
 
-teams <- data %>% select(possession_team) %>% distinct() %>% pull()
+teams <- c("DEN")#data %>% select(possession_team) %>% distinct() %>% pull()
+count <- 0
 
 for (team in teams){
   
+  count <- count + 1
+  print(count)
+  print(team)
+  
   #Initialize  team 
-    team_results[[team]] <- list(
-        data = list(),
-        models = list(
-          full = list(
-            model = NA,
-            weight = list(
-              type = NA,
-              value = NA
-            ),
-            opt = NA,
-            confmat = NA,
-            confmat_opt = NA
-          ),
-          rec = list(
-            model = NA,
-            weight = list(
-              type = NA,
-              value = NA
-            ),
-            opt = NA,
-            confmat = NA,
-            confmat_opt = NA
-          )
-        )
+team_results[[team]] <- list(
+    data = list(),
+    models = list(
+      full = list(
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      ),
+      rec1 = list(
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      ),
+      rec2 = list(  # Added rec2
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      )
     )
+)
   
   #Filter team data and weeks played
   team_data <- model_data %>% filter(possession_team == team)
@@ -67,16 +91,21 @@ for (team in teams){
   full_test_weeks <- tail(weeks, 3)
   full_train_weeks <- weeks[1:(length(weeks)-3)]
   
-  rec_test_weeks <- tail(weeks, 1)
-  rec_train_weeks <- weeks[(length(weeks)-3):(length(weeks)-1)]
+  rec2_test_weeks <- tail(weeks, 1)
+  rec2_train_weeks <- weeks[(length(weeks)-3):(length(weeks)-1)]
+  
+  rec1_test_weeks <- weeks[5]
+  rec1_train_weeks <- weeks[2:4]
   
 
   
   #Fill data for team
   team_results[[team]]$data$full_train <- team_data %>% filter(week %in% full_train_weeks)
   team_results[[team]]$data$full_test <- team_data %>% filter(week %in% full_test_weeks)
-  team_results[[team]]$data$rec_train <- team_data %>% filter(week %in% rec_train_weeks)
-  team_results[[team]]$data$rec_test <- test_data %>% filter(week %in% rec_test_weeks)
+  team_results[[team]]$data$rec1_train <- team_data %>% filter(week %in% rec1_train_weeks)
+  team_results[[team]]$data$rec1_test <- team_data %>% filter(week %in% rec1_test_weeks)
+  team_results[[team]]$data$rec2_train <- team_data %>% filter(week %in% rec2_train_weeks)
+  team_results[[team]]$data$rec2_test <- team_data %>% filter(week %in% rec2_test_weeks)
   
   ##### Modeling #####
   
@@ -109,35 +138,63 @@ for (team in teams){
   
   ## Weights Rec
   
-  n_run_rec <- sum(team_results[[team]]$data$rec_train$run_pass == "run")
-  n_pass_rec <- sum(team_results[[team]]$data$rec_train$run_pass == "pass")
-  
-  if (n_run_rec > n_pass_rec) {
-    rec_weight_ratio = n_run_rec/n_pass_rec
+## Weights Rec1
+n_run_rec1 <- sum(team_results[[team]]$data$rec1_train$run_pass == "run")
+n_pass_rec1 <- sum(team_results[[team]]$data$rec1_train$run_pass == "pass")
+
+if (n_run_rec1 > n_pass_rec1) {
+    rec1_weight_ratio = n_run_rec1/n_pass_rec1
     
-    rec_weight_vector <- numeric(nrow(team_results[[team]]$data$rec_train))
-    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "run"] <- 1
-    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "pass"] <- rec_weight_ratio
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- rec1_weight_ratio
     
-    rec_weight_class <- "pass"
+    rec1_weight_class <- "pass"
     
+} else if (n_pass_rec1 > n_run_rec1){
+    rec1_weight_ratio = n_pass_rec1/n_run_rec1
     
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- rec1_weight_ratio
     
-  } else if (n_pass_rec > n_run_rec){
+    rec1_weight_class <- "run"
+}
+
+## Weights Rec2
+n_run_rec2 <- sum(team_results[[team]]$data$rec2_train$run_pass == "run")
+n_pass_rec2 <- sum(team_results[[team]]$data$rec2_train$run_pass == "pass")
+
+if (n_run_rec2 > n_pass_rec2) {
+    rec2_weight_ratio = n_run_rec2/n_pass_rec2
     
-    rec_weight_ratio = n_pass_rec/n_run_rec
+    rec2_weight_vector <- numeric(nrow(team_results[[team]]$data$rec2_train))
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "run"] <- 1
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "pass"] <- rec2_weight_ratio
     
-    rec_weight_vector <- numeric(nrow(team_results[[team]]$data$rec_train))
-    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "pass"] <- 1
-    rec_weight_vector[team_results[[team]]$data$rec_train$run_pass == "run"] <- rec_weight_ratio
+    rec2_weight_class <- "pass"
     
-    rec_weight_class <- "run"
+} else if (n_pass_rec2 > n_run_rec2){
+    rec2_weight_ratio = n_pass_rec2/n_run_rec2
     
-  }
+    rec2_weight_vector <- numeric(nrow(team_results[[team]]$data$rec2_train))
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "pass"] <- 1
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "run"] <- rec2_weight_ratio
+    
+    rec2_weight_class <- "run"
+}
+
+
   
   #Store weight class
   team_results[[team]]$models$full$weight$type <- full_weight_class
   team_results[[team]]$models$full$weight$value <- full_weight_ratio
+
+  team_results[[team]]$models$rec1$weight$type <- rec1_weight_class
+  team_results[[team]]$models$rec1$weight$value <- rec1_weight_ratio
+  
+  team_results[[team]]$models$rec2$weight$type <- rec2_weight_class
+  team_results[[team]]$models$rec2$weight$value <- rec2_weight_ratio
   
 
   
@@ -145,7 +202,7 @@ for (team in teams){
 
   tuneGrid <- expand.grid(
     mtry = seq(1, 16, 1),
-    min.node.size = c(1, 7, 12, 20, 40),
+    min.node.size = c(1, 5, 10, 15, 20, 25, 30, 35),
     splitrule = c("gini", "extratrees")
   )
   
@@ -159,12 +216,13 @@ for (team in teams){
   )
     
     
-  # Full model
+  ##### Full model #####
   
   set.seed(120220)
   full_rf <- train(
     run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
-               receiver_alignment + epa_lag + curr_win_percentage + form_change + wr_motion +
+               #receiver_alignment + 
+               epa_lag + curr_win_percentage + form_change + wr_motion +
                te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
     data = team_results[[team]]$data$full_train,
     method = "ranger",
@@ -182,22 +240,120 @@ for (team in teams){
   # Prediction Accuracy
   
   #Optimal Treshold
-  train_predictions <- predict(full_rf, new_data = team_results[[team]]$data$full_train, type = "prob")
-  roc_obj <- roc(team_results[[team]]$data$full_train, train_predictions$run)
+  train_predictions <- predict(full_rf, newdata = team_results[[team]]$data$full_train, type = "prob")
+  roc_obj <- roc(team_results[[team]]$data$full_train$run_pass, train_predictions[,"run"])
   opt <- coords(roc_obj, "best", ret = "threshold", best.method = "youden")[[1]]
   
   team_results[[team]]$models$full$opt <- opt
   
-  #Confusion matrix raw
-  class_raw <- predict(full_rf, new_data = team_results[[team]]$data$full_test)
+  #Optimal Threshold
+
   
-  full_confmat <- confusionMatrix(class_raw, team_results[[team]]$data$full_test, positive = "run")
+  
+  #Confusion matrix raw
+  class_raw <- predict(full_rf, newdata = team_results[[team]]$data$full_test)
+  full_confmat <- confusionMatrix(class_raw, 
+                                 team_results[[team]]$data$full_test$run_pass,  # Added $run_pass
+                                 positive = "run")
   
   team_results[[team]]$models$full$conf_mat <- full_confmat
   
   #Confusion matrix altered
-  pred_probs_full <- predict(full_rf, new_data = team_results[[team]]$data$full_test, type = "prob")$run
+  pred_probs_full <- predict(full_rf, newdata = team_results[[team]]$data$full_test, type = "prob")$run
   class_alt <- as.factor(ifelse(pred_probs_full > opt, "run", "pass"))
+  
+  full_confmat_alt <- confusionMatrix(class_alt, team_results[[team]]$data$full_test$run_pass, positive = "run")
+  team_results[[team]]$models$full$conf_mat_opt <- full_confmat_alt
+  
+##########
+  
+  print("Full Model Complete")
+  
+##### Rec1 model #####
+  
+set.seed(120220)
+rec1_rf <- train(
+  run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+             #receiver_alignment + 
+             epa_lag + curr_win_percentage + form_change + wr_motion +
+             te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+  data = team_results[[team]]$data$rec1_train,
+  method = "ranger",
+  tuneGrid = tuneGrid,
+  trControl = ctrl,
+  metric = "ROC",
+  importance = 'permutation',
+  num.trees = 500,
+  weights = rec1_weight_vector
+)
+
+team_results[[team]]$models$rec1$model <- rec1_rf
+
+# Prediction Accuracy
+
+#Optimal Threshold
+train_predictions_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_train, type = "prob")
+roc_obj_rec1 <- roc(team_results[[team]]$data$rec1_train$run_pass, train_predictions_rec1[,"run"])
+opt_rec1 <- coords(roc_obj_rec1, "best", ret = "threshold", best.method = "youden")[[1]]
+
+team_results[[team]]$models$rec1$opt <- opt_rec1
+
+#Confusion matrix raw
+class_raw_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test)
+rec1_confmat <- confusionMatrix(class_raw_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
+team_results[[team]]$models$rec1$conf_mat <- rec1_confmat
+
+#Confusion matrix altered
+pred_probs_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test, type = "prob")$run
+class_alt_rec1 <- as.factor(ifelse(pred_probs_rec1 > opt_rec1, "run", "pass"))
+rec1_confmat_alt <- confusionMatrix(class_alt_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
+team_results[[team]]$models$rec1$conf_mat_opt <- rec1_confmat_alt
+
+print("Rec1 Model Complete")
+
+##### Rec2 model #####
+
+set.seed(120220)
+rec2_rf <- train(
+  run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+             #receiver_alignment + 
+             epa_lag + curr_win_percentage + form_change + wr_motion +
+             te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+  data = team_results[[team]]$data$rec2_train,
+  method = "ranger",
+  tuneGrid = tuneGrid,
+  trControl = ctrl,
+  metric = "ROC",
+  importance = 'permutation',
+  num.trees = 500,
+  weights = rec2_weight_vector
+)
+
+team_results[[team]]$models$rec2$model <- rec2_rf
+
+# Prediction Accuracy
+
+#Optimal Threshold
+train_predictions_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_train, type = "prob")
+roc_obj_rec2 <- roc(team_results[[team]]$data$rec2_train$run_pass, train_predictions_rec2[,"run"])
+opt_rec2 <- coords(roc_obj_rec2, "best", ret = "threshold", best.method = "youden")[[1]]
+
+
+
+team_results[[team]]$models$rec2$opt <- opt_rec2
+
+#Confusion matrix raw
+class_raw_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test)
+rec2_confmat <- confusionMatrix(class_raw_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
+team_results[[team]]$models$rec2$conf_mat <- rec2_confmat
+
+#Confusion matrix altered
+pred_probs_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test, type = "prob")$run
+class_alt_rec2 <- as.factor(ifelse(pred_probs_rec2 > opt_rec2, "run", "pass"))
+rec2_confmat_alt <- confusionMatrix(class_alt_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
+team_results[[team]]$models$rec2$conf_mat_opt <- rec2_confmat_alt
+
+print("Rec2 Model Complete")
   
   
 }
@@ -205,7 +361,10 @@ for (team in teams){
 # data %>% group_by(possession_team) %>% 
 #   summarise(prop_run = sum(run_pass == "run")/n(),
 #             prop_pass = sum(run_pass == "pass")/n())
-final_df
-levels(final_df$run_pass)
+
 ```
+
+
+
+
 
