@@ -62,15 +62,17 @@ model_data <- model_data %>%
 
 
 
-Get data for each team split into:
-full training(1-6), full testing(7-9)
-recent training(6-8), recent testing(9)
-
-Mock list structure
+Model list structure
 ```{r}
 team_results <- list()
 
-teams <- c("DET")#data %>% select(possession_team) %>% distinct() %>% pull()
+teams <- model_data  %>% 
+        select(possession_team) %>% 
+        filter(possession_team != "TEN") %>% 
+        distinct() %>% pull()
+
+#Remove teams to debug later: TEN
+
 count <- 0
 
 for (team in teams){
@@ -397,6 +399,9 @@ print("Rec2 Model Complete")
 
 ```
 
+```{r}
+saveRDS(team_results, file = "NFL_rf_models.rds")
+```
 
 
 Post function
@@ -493,7 +498,7 @@ probs_full <- list$data$full_test %>%
 }
 ```
 
-
+Testing post function
 ```{r}
 #Model 
 
