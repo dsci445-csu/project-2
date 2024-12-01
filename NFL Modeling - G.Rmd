@@ -27,7 +27,40 @@ model_data <- read.csv("C:/Users/gabem/OneDrive/Documents/GitHub/project-2/data/
 
 #model_data %>% select(offense_formation) %>% distinct()
 #model_data %>% filter(is.na(redzone)) %>% group_by(possession_team) %>% summarise(n=n())
+
+test <- model_data %>% group_by(possession_team, offense_formation) %>% summarise(n=n()) %>% 
+  ungroup() %>% 
+  filter(n < 5) %>% mutate(sum = sum(n))
 ```
+
+```{r}
+#Previously removed receiver alignment to ensure models run
+#Now remove formations not commonly used by teams
+
+# Create a data frame of all combinations to remove
+remove_combinations <- data.frame(
+  possession_team = c(
+    "ARI", "ARI", "ATL", "BAL", "BUF", "BUF", "BUF", "CAR", "CAR", "CAR",
+    "CHI", "CLE", "CLE", "DAL", "DEN", "DEN", "DET", "DET", "HOU", "IND",
+    "IND", "IND", "JAX", "JAX", "KC", "KC", "LA", "LV", "LV", "MIA",
+    "MIN", "NE", "NE", "NO", "NYG", "NYJ", "NYJ", "NYJ", "NYJ", "PIT",
+    "PIT", "SEA", "SEA", "SF", "TEN", "TEN", "WAS", "WAS"
+  ),
+  offense_formation = c(
+    "I_FORM", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT",
+    "WILDCAT", "PISTOL", "WILDCAT", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "PISTOL", "JUMBO",
+    "PISTOL", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT", "PISTOL", "JUMBO", "WILDCAT", "WILDCAT",
+    "PISTOL", "PISTOL", "WILDCAT", "JUMBO", "JUMBO", "I_FORM", "JUMBO", "PISTOL", "WILDCAT", "JUMBO",
+    "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT"
+  )
+)
+
+# Filter the dataset using anti_join
+model_data <- model_data %>%
+  anti_join(remove_combinations, by = c("possession_team", "offense_formation"))
+```
+
+
 
 Get data for each team split into:
 full training(1-6), full testing(7-9)
@@ -37,7 +70,7 @@ Mock list structure
 ```{r}
 team_results <- list()
 
-teams <- c("DEN")#data %>% select(possession_team) %>% distinct() %>% pull()
+teams <- c("DET")#data %>% select(possession_team) %>% distinct() %>% pull()
 count <- 0
 
 for (team in teams){
@@ -245,8 +278,7 @@ if (n_run_rec2 > n_pass_rec2) {
   opt <- coords(roc_obj, "best", ret = "threshold", best.method = "youden")[[1]]
   
   team_results[[team]]$models$full$opt <- opt
-  
-  #Optimal Threshold
+
 
   
   
@@ -256,14 +288,14 @@ if (n_run_rec2 > n_pass_rec2) {
                                  team_results[[team]]$data$full_test$run_pass,  # Added $run_pass
                                  positive = "run")
   
-  team_results[[team]]$models$full$conf_mat <- full_confmat
+  team_results[[team]]$models$full$confmat <- full_confmat
   
   #Confusion matrix altered
-  pred_probs_full <- predict(full_rf, newdata = team_results[[team]]$data$full_test, type = "prob")$run
-  class_alt <- as.factor(ifelse(pred_probs_full > opt, "run", "pass"))
+  pred_probs_full <- predict(full_rf, newdata = team_results[[team]]$data$full_test, type = "prob")
+  class_alt <- as.factor(ifelse(pred_probs_full[, "run"] > opt, "run", "pass"))
   
   full_confmat_alt <- confusionMatrix(class_alt, team_results[[team]]$data$full_test$run_pass, positive = "run")
-  team_results[[team]]$models$full$conf_mat_opt <- full_confmat_alt
+  team_results[[team]]$models$full$confmat_opt <- full_confmat_alt
   
 ##########
   
@@ -301,13 +333,14 @@ team_results[[team]]$models$rec1$opt <- opt_rec1
 #Confusion matrix raw
 class_raw_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test)
 rec1_confmat <- confusionMatrix(class_raw_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
-team_results[[team]]$models$rec1$conf_mat <- rec1_confmat
+team_results[[team]]$models$rec1$confmat <- rec1_confmat
 
 #Confusion matrix altered
-pred_probs_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test, type = "prob")$run
-class_alt_rec1 <- as.factor(ifelse(pred_probs_rec1 > opt_rec1, "run", "pass"))
+pred_probs_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test, type = "prob")
+class_alt_rec1 <- as.factor(ifelse(pred_probs_rec1[, "run"] > opt_rec1, "run", "pass"))
+
 rec1_confmat_alt <- confusionMatrix(class_alt_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
-team_results[[team]]$models$rec1$conf_mat_opt <- rec1_confmat_alt
+team_results[[team]]$models$rec1$confmat_opt <- rec1_confmat_alt
 
 print("Rec1 Model Complete")
 
@@ -345,13 +378,13 @@ team_results[[team]]$models$rec2$opt <- opt_rec2
 #Confusion matrix raw
 class_raw_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test)
 rec2_confmat <- confusionMatrix(class_raw_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
-team_results[[team]]$models$rec2$conf_mat <- rec2_confmat
+team_results[[team]]$models$rec2$confmat <- rec2_confmat
 
 #Confusion matrix altered
-pred_probs_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test, type = "prob")$run
-class_alt_rec2 <- as.factor(ifelse(pred_probs_rec2 > opt_rec2, "run", "pass"))
+pred_probs_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test, type = "prob")
+class_alt_rec2 <- as.factor(ifelse(pred_probs_rec2[, "run"] > opt_rec2, "run", "pass"))
 rec2_confmat_alt <- confusionMatrix(class_alt_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
-team_results[[team]]$models$rec2$conf_mat_opt <- rec2_confmat_alt
+team_results[[team]]$models$rec2$confmat_opt <- rec2_confmat_alt
 
 print("Rec2 Model Complete")
   
@@ -366,5 +399,200 @@ print("Rec2 Model Complete")
 
 
 
+Post function
+```{r}
+#Post function
+for (team in teams){
+  # Don't create a new list variable - work directly with team_results
+  
+  #Full Model
+  ### Preds
+  class_raw <- predict(team_results[[team]]$models$full$model, 
+                      newdata = team_results[[team]]$data$full_test)
+  pred_probs_full <- predict(team_results[[team]]$models$full$model, 
+                           newdata = team_results[[team]]$data$full_test, 
+                           type = "prob")[,"run"]
+  
+  # Modify the original structure
+  team_results[[team]]$data$full_test <- team_results[[team]]$data$full_test %>% 
+    mutate(
+      pred_class = class_raw,
+      pred_prob = pred_probs_full
+    )
+  
+  ### Data
+probs_full <- list$data$full_test %>%
+  # mutate(
+  #   pred_class = class_raw,
+  #   pred_prob = pred_probs_full
+  # ) %>%
+  summarise(
+    "0.0-0.1(Pass)" = 
+      sum(pred_prob <= 0.1 & pred_class == run_pass) / 
+      sum(pred_prob <= 0.1),
+    
+    "n1" = sum(pred_prob <= 0.1),
+    
+    "0.1-0.2(Pass)" = 
+      sum(pred_prob > 0.1 & pred_prob <= 0.2 & pred_class == run_pass) / 
+      sum(pred_prob > 0.1 & pred_prob <= 0.2),
+    
+    "n2" = sum(pred_prob > 0.1 & pred_prob <= 0.2),
+    
+    "0.2-0.3(Pass)" = 
+      sum(pred_prob > 0.2 & pred_prob <= 0.3 & pred_class == run_pass) / 
+      sum(pred_prob > 0.2 & pred_prob <= 0.3),
+    
+    "n3" = sum(pred_prob > 0.2 & pred_prob <= 0.3),
+    
+    "0.3-0.4(Pass)" = 
+      sum(pred_prob > 0.3 & pred_prob <= 0.4 & pred_class == run_pass) / 
+      sum(pred_prob > 0.3 & pred_prob <= 0.4),
+    
+    "n4" = sum(pred_prob > 0.3 & pred_prob <= 0.4),
+    
+    "0.4-0.5(Pass)" = 
+      sum(pred_prob > 0.4 & pred_prob <= 0.5 & pred_class == run_pass) / 
+      sum(pred_prob > 0.4 & pred_prob <= 0.5),
+    
+    "n5" = sum(pred_prob > 0.4 & pred_prob <= 0.5),
+    
+    "0.5-0.6(Run)" = 
+      sum(pred_prob > 0.5 & pred_prob <= 0.6 & pred_class == run_pass) / 
+      sum(pred_prob > 0.5 & pred_prob <= 0.6),
+    
+    "n6" = sum(pred_prob > 0.5 & pred_prob <= 0.6),
+    
+    "0.6-0.7(Run)" = 
+      sum(pred_prob > 0.6 & pred_prob <= 0.7 & pred_class == run_pass) / 
+      sum(pred_prob > 0.6 & pred_prob <= 0.7),
+    
+    "n7" = sum(pred_prob > 0.6 & pred_prob <= 0.7),
+    
+    "0.7-0.8(Run)" = 
+      sum(pred_prob > 0.7 & pred_prob <= 0.8 & pred_class == run_pass) / 
+      sum(pred_prob > 0.7 & pred_prob <= 0.8),
+    
+    "n8" = sum(pred_prob > 0.7 & pred_prob <= 0.8),
+    
+    "0.8-0.9(Run)" = 
+      sum(pred_prob > 0.8 & pred_prob <= 0.9 & pred_class == run_pass) / 
+      sum(pred_prob > 0.8 & pred_prob <= 0.9),
+    
+    "n9" = sum(pred_prob > 0.8 & pred_prob <= 0.9),
+    
+    "0.9-1.0(Run)" = 
+      sum(pred_prob > 0.9 & pred_class == run_pass) / 
+      sum(pred_prob > 0.9),
+    
+    "n10" = sum(pred_prob > 0.9)
+  )
+  
+  # Add to original structure
+  team_results[[team]]$models$full$probs <- probs_full
+}
+```
 
+
+```{r}
+#Model 
+
+teams <- c("DET")
+
+for (team in teams){
+  
+  list <- team_results[[team]]
+  
+  #Full Model
+  
+  ### Preds
+  
+  class_raw <- predict(list$models$full$model, newdata = team_results[[team]]$data$full_test)
+  pred_probs_full <- predict(list$models$full$model, newdata = team_results[[team]]$data$full_test, type = "prob")[,"run"]
+  
+  list$data$full_test <- list$data$full_test %>% 
+  mutate(
+    pred_class = class_raw,
+    pred_prob = pred_probs_full
+  )
+  
+  ### Data
+  
+  probs_full <- list$data$full_test %>%
+  # mutate(
+  #   pred_class = class_raw,
+  #   pred_prob = pred_probs_full
+  # ) %>%
+  summarise(
+    "0.0-0.1(Pass)" = 
+      sum(pred_prob <= 0.1 & pred_class == run_pass) / 
+      sum(pred_prob <= 0.1),
+    
+    "n1" = sum(pred_prob <= 0.1),
+    
+    "0.1-0.2(Pass)" = 
+      sum(pred_prob > 0.1 & pred_prob <= 0.2 & pred_class == run_pass) / 
+      sum(pred_prob > 0.1 & pred_prob <= 0.2),
+    
+    "n2" = sum(pred_prob > 0.1 & pred_prob <= 0.2),
+    
+    "0.2-0.3(Pass)" = 
+      sum(pred_prob > 0.2 & pred_prob <= 0.3 & pred_class == run_pass) / 
+      sum(pred_prob > 0.2 & pred_prob <= 0.3),
+    
+    "n3" = sum(pred_prob > 0.2 & pred_prob <= 0.3),
+    
+    "0.3-0.4(Pass)" = 
+      sum(pred_prob > 0.3 & pred_prob <= 0.4 & pred_class == run_pass) / 
+      sum(pred_prob > 0.3 & pred_prob <= 0.4),
+    
+    "n4" = sum(pred_prob > 0.3 & pred_prob <= 0.4),
+    
+    "0.4-0.5(Pass)" = 
+      sum(pred_prob > 0.4 & pred_prob <= 0.5 & pred_class == run_pass) / 
+      sum(pred_prob > 0.4 & pred_prob <= 0.5),
+    
+    "n5" = sum(pred_prob > 0.4 & pred_prob <= 0.5),
+    
+    "0.5-0.6(Run)" = 
+      sum(pred_prob > 0.5 & pred_prob <= 0.6 & pred_class == run_pass) / 
+      sum(pred_prob > 0.5 & pred_prob <= 0.6),
+    
+    "n6" = sum(pred_prob > 0.5 & pred_prob <= 0.6),
+    
+    "0.6-0.7(Run)" = 
+      sum(pred_prob > 0.6 & pred_prob <= 0.7 & pred_class == run_pass) / 
+      sum(pred_prob > 0.6 & pred_prob <= 0.7),
+    
+    "n7" = sum(pred_prob > 0.6 & pred_prob <= 0.7),
+    
+    "0.7-0.8(Run)" = 
+      sum(pred_prob > 0.7 & pred_prob <= 0.8 & pred_class == run_pass) / 
+      sum(pred_prob > 0.7 & pred_prob <= 0.8),
+    
+    "n8" = sum(pred_prob > 0.7 & pred_prob <= 0.8),
+    
+    "0.8-0.9(Run)" = 
+      sum(pred_prob > 0.8 & pred_prob <= 0.9 & pred_class == run_pass) / 
+      sum(pred_prob > 0.8 & pred_prob <= 0.9),
+    
+    "n9" = sum(pred_prob > 0.8 & pred_prob <= 0.9),
+    
+    "0.9-1.0(Run)" = 
+      sum(pred_prob > 0.9 & pred_class == run_pass) / 
+      sum(pred_prob > 0.9),
+    
+    "n10" = sum(pred_prob > 0.9)
+  )
+
+list$models$full$probs <- probs_full
+  
+  #Rec1 Model
+  
+  #Rec2 Model
+  
+}
+
+
+```
 
