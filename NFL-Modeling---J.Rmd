@@ -262,23 +262,23 @@ final_logistic_model <- glm(
 logistic_predictions_prob <- predict(final_logistic_model,
                                      newdata = nfl_test, type = "response")
 
-# Convert probabilities to class labels based on a threshold of 0.5
+#Convert probabilities to class labels based on a threshold of 0.5
 logistic_predictions_class <- ifelse(logistic_predictions_prob > 0.5, "run", "pass")
 
-# Add predictions to the test dataset
+#Add predictions to the test dataset
 nfl_test <- nfl_test %>%
   mutate(predicted_run_pass = logistic_predictions_class)
 
-# Create a confusion matrix
+#Create a confusion matrix
 confusion_matrix <- table(
   Truth = nfl_test$run_pass,
   Prediction = nfl_test$predicted_run_pass
 )
 
-# Print the confusion matrix
+#Print the confusion matrix
 print(confusion_matrix)
 
-# Calculate and print accuracy and error rates
+#Calculate the accuracy and error rates
 accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
 error_rate <- 1 - accuracy
 
