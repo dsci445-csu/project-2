@@ -69,7 +69,7 @@ library(mltools)
 
   Use LASSO to perform varaible selection and then fit a logistic regression model as a kind of control to compare our other models against.
 
-```{r, logistic_model, cache=TRUE}
+```{r, cache=TRUE}
 
 #Load in the data set
 nfl_df <- read.csv("data/modeling_data_frame.csv")
@@ -139,7 +139,7 @@ lasso_ests |>
   # and view the graph in a new window to get a better idea. 
   theme(legend.position="none")
 ```
-```{r}
+```{r, data_split}
 
 #Create the training and testing sets of data
   #Use the first 6 weeks of data for training 
@@ -307,6 +307,12 @@ for (i in c(1:32)){
     filter(possession_team==team) %>%
     mutate(run_pass = as.factor(run_pass))
   
+  #troublesome receiver alignment value for denver remove it
+  if(team=="DEN"){
+    team_df <- team_df %>%
+      filter(receiver_alignment !="2x0")
+  }
+  
   #Sort the data by week
   weeks <- sort(unique(team_df$week))
   
@@ -367,6 +373,7 @@ for (i in c(1:32)){
   model_info$m_corr[[i]]<- mcc(preds=team_test$predicted_run_pass,
                                actuals= team_test$run_pass)
   
+  #Add print statements to view the model progress
   print(team)
   print(confusionMatrix(team_test$predicted_run_pass,team_test$run_pass))
   print(model_info$m_corr[[i]])

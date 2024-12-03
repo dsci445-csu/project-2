@@ -1,0 +1,44 @@
+---
+title: "NFL-Graphing-J"
+author: "Justin C. Eldridge"
+date: "2024-12-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Graphing
+
+## Matthews Corellation Coefficient
+
+```{r}
+
+#Convert some of the list objects into data frames for plotting
+team_names <- as.data.frame(model_info$nfl_team)
+
+team_names <- team_names %>%
+  rename(nfl_team = `model_info$nfl_team`)
+
+mcc_vals <- as.data.frame(model_info$m_corr)
+
+mcc_vals_long <- mcc_vals %>%
+  pivot_longer(
+    cols = everything(),        # Select all columns
+    names_to = "variable",      # Create a column for the original column names
+    values_to = "mcc_value"     # Create a column for the values
+  )
+
+plot_df <- data.frame(Team = team_names$nfl_team, MCC = mcc_vals_long$mcc_value)
+
+#Use the correlations in the model info list to plot correllation by team
+corr_plot <- plot_df %>%
+  ggplot()+
+  geom_point(aes(x=Team, y=MCC))+
+  theme(axis.text.x=element_text(angle=45))
+
+corr_plot
+
+```
+
