@@ -50,7 +50,23 @@ II. We decided to participate in the 2024 big data bowl which asks participants 
 # Results:
 
 
-## Logistic Regression
+## Logistic Regression:
+
+Overall Model:
+
+The logistic model fit on the entire data set achieved a 64% accuracy rate. 
+
+-look into the true positive and true negative rates
+
+Model by team:
+
+-Not sure how to go through these results should we just go through each team?
+
+-Should we just go through the most accurate reults or the most "interesting"?
+
+-Looking into plots for the accuracy rate by team to try and put them all on the same plot
+
+-Will likely be the same plot for each of the models for comparison. 
 
 
 ## KNN
