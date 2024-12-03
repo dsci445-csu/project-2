@@ -482,7 +482,7 @@ svm_data_test <- svm_data %>% slice(1:4)
 save the data
 
 ```{r store-svm-data}
-write.csv(svm_data, "data/NFL SVM Results.csv", row.names = F)
+saveRDS(svm_model_info, "SVM Model Info by Team.rds")
 ```
 
 
