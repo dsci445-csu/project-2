@@ -16,6 +16,7 @@ library(tidymodels)
 library(tidyr)
 library(tidyverse)
 library(glmnet)
+library(mltools)
 
 ```
 
@@ -284,7 +285,8 @@ confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 model_info <- list("nfl_team" = unique(nfl_df$possession_team),
                    "train_fit" = as.list(seq(32)),
                    "prediction" = as.list(seq(32)),
-                   "conf_mat" = as.list(seq(32)))
+                   "conf_mat" = as.list(seq(32)),
+                   "m_corr"= as.list(seq(32)))
 
 #Specify the logistic formula using the variables selected from lasso
 logistic_formula <- as.formula(paste("run_pass ~",
@@ -361,8 +363,13 @@ for (i in c(1:32)){
   model_info$conf_mat[[i]]<-confusionMatrix(team_test$predicted_run_pass,
                                             team_test$run_pass)
   
+  #Calculate Matthews correlation coefficient (mltools)
+  model_info$m_corr[[i]]<- mcc(preds=team_test$predicted_run_pass,
+                               actuals= team_test$run_pass)
+  
   print(team)
   print(confusionMatrix(team_test$predicted_run_pass,team_test$run_pass))
+  print(model_info$m_corr[[i]])
   
 }
 
