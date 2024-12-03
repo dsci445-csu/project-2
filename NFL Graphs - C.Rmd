@@ -1,0 +1,29 @@
+---
+title: "NFL Graphs - C"
+author: "Chandler"
+date: "2024-12-03"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+#Load the appropriate libraries:
+library(ggplot2)
+library(tidymodels)
+library(tidyr)
+library(tidyverse)
+library(glmnet)
+library(kknn)
+library(caret)
+library(kernlab)
+library(nflplotR)
+```
+
+
+```{r run-pass-pred}
+svm_data_test %>%
+  ggplot(aes(x = sens, y = spec)) +
+  geom_nfl_logos(aes(team_abbr = team))
+
+```
+
