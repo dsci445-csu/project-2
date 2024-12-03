@@ -15,7 +15,6 @@ library(ggplot2)
 library(tidymodels)
 library(tidyr)
 library(tidyverse)
-
 library(glmnet)
 
 ```
@@ -73,8 +72,6 @@ library(glmnet)
 
 #Load in the data set
 nfl_df <- read.csv("data/modeling_data_frame.csv")
-
-
 
 #Make the run pass variable a factor
 nfl_df$run_pass <- as.factor(nfl_df$run_pass)
@@ -147,26 +144,28 @@ lasso_ests |>
   #Use the first 6 weeks of data for training 
   #Use the last 3 weeks of dat for testing
 
+#Grab the data
 nfl_lasso_df <- nfl_df
 
+#Make sure that run pass is a factor not a character type
 nfl_lasso_df$run_pass <- as.factor(nfl_lasso_df$run_pass)
 
+#Encode the boolean columns as numeric
 nfl_lasso_df[bool_cols] <- lapply(nfl_lasso_df[bool_cols], as.numeric)
 
+#Create the training set
 nfl_train <- nfl_lasso_df %>%
   filter(week==c(1,2,3,4,5,6))
 
+#Create the test set
 nfl_test <- nfl_lasso_df %>%
   filter(week==c(7,8,9))
-  
-  
-
-  
 ```
 
 
 
 ```{r}
+#Fit a lasso model and determine the optimum lambda for varaible selection
 
 #Create a data frame for tuning lambda
 tune_df <- data.frame(lambda=lambda)
@@ -203,11 +202,8 @@ final_lasso_model <- fit(final_lasso_workflow, data=nfl_train) -> final_lasso_fi
 
 final_model <- extract_fit_parsnip(final_lasso_model)
 
-
-
 #Convert the coefficients to a tidy data frame
 selected_variables <- tidy(final_model)
-
 
 #Generate predictions on the test dataset
 lasso_predictions <- predict(final_lasso_model, nfl_test, type = "class") %>%
@@ -222,16 +218,14 @@ confusion_mat <- conf_mat(
 
 #Print the confusion matrix
 print(confusion_mat)
-
-
 ```
 
 ```{r}
-# Extract non-zero coefficient variables from the LASSO model
-# selected_variables <- tidy(final_model) %>%
-#   filter(term != "(Intercept)" & estimate != 0) %>%
-#   pull(term)
 
+#Fit the logistic model on the entire data set using the varaibles from the 
+#lasso model.
+
+#Look at the output from the optimal lasso model to do variable selection
 selected_vars <-c("down", "yards_to_go", "yards_to_endzone", "sec_in_half",
                   "epa_lag", "curr_win_percentage", "form_change", "wr_motion",
                   "te_motion","rb_motion","wr_atsnap", "te_atsnap",
@@ -242,11 +236,13 @@ selected_vars <-c("down", "yards_to_go", "yards_to_endzone", "sec_in_half",
 #Select the cagetorical variables with multiple levels
 factor_vars <- c("offense_formation", "receiver_alignment")
 
-#Set the levels in the test set to be the same as the levels in teh training set
-for (var in factor_vars) {
-  nfl_test[[var]] <- factor(nfl_test[[var]], levels = levels(nfl_train[[var]]))
-}
-
+#Drop the few data points that are in the testing set but not the training set
+nfl_train <- nfl_train %>% filter(offense_formation %in% nfl_test$offense_formation, 
+                                      receiver_alignment %in% nfl_test$receiver_alignment)
+  
+nfl_test <- nfl_test %>% filter(offense_formation %in% nfl_train$offense_formation, 
+                                    receiver_alignment %in% nfl_train$receiver_alignment)
+  
 #Create a formula for logistic regression using selected variables
 logistic_formula <- as.formula(paste("run_pass ~",
                                      paste(selected_vars, collapse = " + ")))
@@ -275,20 +271,33 @@ confusion_matrix <- table(
   Prediction = nfl_test$predicted_run_pass
 )
 
-#Print the confusion matrix
-print(confusion_matrix)
+#Make sure that the precited pass column is also a factor like the truth col
+nfl_test$predicted_run_pass <- as.factor(nfl_test$predicted_run_pass)
 
-#Calculate the accuracy and error rates
-accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
-error_rate <- 1 - accuracy
+#Create a confusion matrix with the accuracy
+confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 
-cat("Accuracy Rate:", accuracy, "\n")
-cat("Error Rate:", error_rate, "\n")
+```
+
+```{r}
+
+#Fit the optimal logistic regression model for each team 
+
+
+#Create a list to store the models for each team as well as the confusion
+#matrices
+model_info <- list("nfl_team" = unique(nfl_df$possession_team),
+                   "train_fit" = as.list(seq(32)),
+                   "test_fit" = as.list(seq(32)),
+                   "conf_mat" = as.list(seq(32)))
+
+#Use a for loop
 
 
 
 
 ```
+
 
 
 
