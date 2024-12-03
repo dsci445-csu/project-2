@@ -13,6 +13,7 @@ library(caret)
 library(dplyr)
 library(ranger)
 library(tidyverse)
+library(pROC)
 ```
 
 Data
@@ -64,12 +65,16 @@ model_data <- model_data %>%
 
 Model list structure
 ```{r}
-team_results <- list()
+#team_results <- list()
+team_results <- readRDS("NFL_rf_models.rds")
 
-teams <- model_data  %>% 
-        select(possession_team) %>% 
-        filter(possession_team != "TEN") %>% 
-        distinct() %>% pull()
+
+# teams <- model_data  %>% 
+#         select(possession_team) %>% 
+#         filter(possession_team != "TEN") %>% 
+#         distinct() %>% pull()
+
+teams <- c("TEN")
 
 #Remove teams to debug later: TEN
 
@@ -194,6 +199,17 @@ if (n_run_rec1 > n_pass_rec1) {
     rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- rec1_weight_ratio
     
     rec1_weight_class <- "run"
+
+} else if (n_pass_rec1 == n_run_rec1){
+  
+    rec1_weight_ratio = n_pass_rec1/n_run_rec1
+    
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- 1
+    
+    rec1_weight_class <- "none"
+  
 }
 
 ## Weights Rec2
@@ -401,6 +417,7 @@ print("Rec2 Model Complete")
 
 ```{r}
 saveRDS(team_results, file = "NFL_rf_models.rds")
+test <- readRDS("NFL_rf_models.rds")
 ```
 
 
@@ -498,7 +515,7 @@ probs_full <- list$data$full_test %>%
 }
 ```
 
-Testing post function
+Testing post function(mock)
 ```{r}
 #Model 
 
@@ -600,4 +617,164 @@ list$models$full$probs <- probs_full
 
 
 ```
+
+
+#############
+Team analysis
+
+Structure:
+```{r}
+#Teams
+teams <- names(team_results)
+
+NFL_rf_results <- data.frame()
+
+# NFL_rf_results <- data.frame(
+#   team = NA,
+#   #Full Model(raw)
+#   full_acc = NA,
+#   full_pa_acc = NA,
+#   full_ru_acc = NA,
+#   full_ppv = NA,
+#   full_npv = NA,
+#   #Full Model(alt)
+#   full_alt_acc = NA,
+#   full_alt_pa_acc = NA,
+#   full_alt_ru_acc = NA,
+#   full_alt_ppv = NA,
+#   full_alt_npv = NA,
+#   #Full: raw or alt?
+#   full_opt = NA,
+#   full_best = NA,
+#   
+#   #Rec1 Model(raw)
+#   rec1_acc = NA,
+#   rec1_pa_acc = NA,
+#   rec1_ru_acc = NA,
+#   rec1_ppv = NA,
+#   rec1_npv = NA,
+#   #Rec1 Model(alt)
+#   rec1_alt_acc = NA,
+#   rec1_alt_pa_acc = NA,
+#   rec1_alt_ru_acc = NA,
+#   rec1_alt_ppv = NA,
+#   rec1_alt_npv = NA,
+#   #Rec1: raw or alt?
+#   rec1_opt = NA,
+#   rec1_best = NA,
+#   
+#   #Rec2 Model(raw)
+#   rec2_acc = NA,
+#   rec2_pa_acc = NA,
+#   rec2_ru_acc = NA,
+#   rec2_ppv = NA,
+#   rec2_npv = NA,
+#   #Rec2 Model(alt)
+#   rec2_alt_acc = NA,
+#   rec2_alt_pa_acc = NA,
+#   rec2_alt_ru_acc = NA,
+#   rec2_alt_ppv = NA,
+#   rec2_alt_npv = NA,
+#   #Rec2: raw or alt?
+#   rec2_opt = NA,
+#   rec2_best = NA
+# )
+
+sum(team_results$BUF$data$rec2_test$run_pass == "run")
+```
+
+
+
+
+```{r}
+for (team in teams) {
+  # First calculate all the accuracy values
+  full_acc <- team_results[[team]]$models$full$confmat$overall[[1]]
+  full_alt_acc <- team_results[[team]]$models$full$confmat_opt$overall[[1]]
+  rec1_acc <- team_results[[team]]$models$rec1$confmat$overall[[1]]
+  rec1_alt_acc <- team_results[[team]]$models$rec1$confmat_opt$overall[[1]]
+  rec2_acc <- team_results[[team]]$models$rec2$confmat$overall[[1]]
+  rec2_alt_acc <- team_results[[team]]$models$rec2$confmat_opt$overall[[1]]
+  
+  data <- data.frame(
+    team = team,
+    
+    #Full
+    full_acc = full_acc,
+    full_test_n_run = sum(team_results[[team]]$data$full_test$run_pass == "run"),
+    full_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
+    full_pa_acc = team_results[[team]]$models$full$confmat$byClass[[2]],
+    full_ru_acc = team_results[[team]]$models$full$confmat$byClass[[1]], 
+    full_pa_npv = team_results[[team]]$models$full$confmat$byClass[[4]],  
+    full_ru_ppv = team_results[[team]]$models$full$confmat$byClass[[3]],
+    
+    full_alt_acc = full_alt_acc,
+    full_alt_pa_acc = team_results[[team]]$models$full$confmat_opt$byClass[[2]],
+    full_alt_ru_acc = team_results[[team]]$models$full$confmat_opt$byClass[[1]], 
+    full_alt_pa_npv = team_results[[team]]$models$full$confmat_opt$byClass[[4]],  
+    full_alt_ru_ppv = team_results[[team]]$models$full$confmat_opt$byClass[[3]],
+    
+    full_opt = team_results[[team]]$models$full$opt,
+    full_best = ifelse(full_acc >= full_alt_acc, "raw", "alt"),
+    
+    #Rec1
+    rec1_acc = rec1_acc,
+    rec1_test_n_run = sum(team_results[[team]]$data$rec1_test$run_pass == "run"),
+    rec1_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
+    rec1_pa_acc = team_results[[team]]$models$rec1$confmat$byClass[[2]],
+    rec1_ru_acc = team_results[[team]]$models$rec1$confmat$byClass[[1]], 
+    rec1_pa_npv = team_results[[team]]$models$rec1$confmat$byClass[[4]],  
+    rec1_ru_ppv = team_results[[team]]$models$rec1$confmat$byClass[[3]],
+    
+    rec1_alt_acc = rec1_alt_acc,
+    rec1_alt_pa_acc = team_results[[team]]$models$rec1$confmat_opt$byClass[[2]],
+    rec1_alt_ru_acc = team_results[[team]]$models$rec1$confmat_opt$byClass[[1]], 
+    rec1_alt_pa_npv = team_results[[team]]$models$rec1$confmat_opt$byClass[[4]],  
+    rec1_alt_ru_ppv = team_results[[team]]$models$rec1$confmat_opt$byClass[[3]],
+    
+    rec1_opt = team_results[[team]]$models$rec1$opt[[1]],
+    rec1_best = ifelse(rec1_acc >= rec1_alt_acc, "raw", "alt"),
+    
+    #Rec2
+    rec2_acc = rec2_acc,
+    rec2_test_n_run = sum(team_results[[team]]$data$rec1_test$run_pass == "run"),
+    rec2_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
+    rec2_pa_acc = team_results[[team]]$models$rec2$confmat$byClass[[2]],
+    rec2_ru_acc = team_results[[team]]$models$rec2$confmat$byClass[[1]], 
+    rec2_pa_npv = team_results[[team]]$models$rec2$confmat$byClass[[4]],  
+    rec2_ru_ppv = team_results[[team]]$models$rec2$confmat$byClass[[3]],
+    
+    rec2_alt_acc = rec2_alt_acc,
+    rec2_alt_pa_acc = team_results[[team]]$models$rec2$confmat_opt$byClass[[2]],
+    rec2_alt_ru_acc = team_results[[team]]$models$rec2$confmat_opt$byClass[[1]], 
+    rec2_alt_pa_npv = team_results[[team]]$models$rec2$confmat_opt$byClass[[4]],  
+    rec2_alt_ru_ppv = team_results[[team]]$models$rec2$confmat_opt$byClass[[3]],
+    
+    rec2_opt = team_results[[team]]$models$rec2$opt,
+    rec2_best = ifelse(rec2_acc >= rec2_alt_acc, "raw", "alt")
+  )
+  
+  
+  NFL_rf_results <- rbind(NFL_rf_results, data)
+}
+
+NFL_rf_results
+
+# Remove the initial NA row if it exists
+#NFL_rf_results <- NFL_rf_results[!is.na(NFL_rf_results$team),]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
