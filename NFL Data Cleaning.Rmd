@@ -172,6 +172,29 @@ colnames(final_df) <- clean_column_names
 write.csv(final_df, "data/modeling_data_frame.csv", row.names = F)
 ```
 
+# Get wins for each team
+```{r wins-df}
+win_losses <- data.frame(team = sort(unique(games$homeTeamAbbr)),
+                         wins = 0, losses = 0, tie = 0)
+for(i in 1:nrow(games)){
+  home_team <- games$homeTeamAbbr[i]
+  vis_team <- games$visitorTeamAbbr[i]
+  home_ind <- match(home_team, win_losses$team)
+  vis_ind <- match(vis_team, win_losses$team)
+  if(games$homeFinalScore[i] > games$visitorFinalScore[i]){
+    win_losses$wins[home_ind] <- win_losses$wins[home_ind] + 1
+    win_losses$losses[vis_ind] <- win_losses$losses[vis_ind] + 1
+  }else if(games$homeFinalScore[i] < games$visitorFinalScore[i]){
+    win_losses$wins[vis_ind] <- win_losses$wins[vis_ind] + 1
+    win_losses$losses[home_ind] <- win_losses$losses[home_ind] + 1
+  }else{
+    win_losses$tie[vis_ind] <- win_losses$tie[vis_ind] + 1
+    win_losses$tie[home_ind] <- win_losses$tie[home_ind] + 1    
+  }
+}
+
+write.csv(win_losses, "data/win_loss.csv", row.names = F)
+```
 
 
 
