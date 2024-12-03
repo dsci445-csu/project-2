@@ -1,6 +1,6 @@
 ---
 title: "Paper Outline"
-author: "Justin C. Eldridge"
+author: "Justin C. Eldridge, Chandler Grote, Gabe Macklem"
 date: "2024-11-21"
 output: pdf_document
 ---
@@ -54,7 +54,24 @@ II. We decided to participate in the 2024 big data bowl which asks participants 
 
 Overall Model:
 
-The logistic model fit on the entire data set achieved a 64% accuracy rate. 
+-Performed Lasso regression and tuned the penalty parameter to get the best lasso model. We then used this lasso model to select the variables that we wanted to include in the logistic regression model. 
+
+Variables Selected from Lasso:
+
+1. Down
+2. Yards to go
+3. Yards to endzone
+4. Redzone indicator
+5. Seconds remaining in half
+6. Expected points added lag
+7. Current team win percentage
+8. Formation Change
+9. Motion indicators for Wide Receivers, Tight Ends, and Running Backs after the line was set
+10. Motion indicators for Wide Receivers, Tight Ends, and Running Backs at the time of the snap
+11. Offensive formation
+12. Receiver Alignment
+
+The logistic model fit on the entire data set with the selected variables achieved a 64% accuracy rate. 
 
 -look into the true positive and true negative rates
 
