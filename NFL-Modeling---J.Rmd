@@ -231,11 +231,6 @@ selected_vars <-c("down", "yards_to_go", "yards_to_endzone", "sec_in_half",
                   "te_motion","rb_motion","wr_atsnap", "te_atsnap",
                   "offense_formation", "receiver_alignment")
 
-#The test set has a level of offense_formation that is not in the training set
-
-#Select the cagetorical variables with multiple levels
-factor_vars <- c("offense_formation", "receiver_alignment")
-
 #Drop the few data points that are in the testing set but not the training set
 nfl_train <- nfl_train %>% filter(offense_formation %in% nfl_test$offense_formation, 
                                       receiver_alignment %in% nfl_test$receiver_alignment)
@@ -279,7 +274,7 @@ confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 
 ```
 
-```{r}
+```{r, warning=FALSE}
 
 #Fit the optimal logistic regression model for each team 
 
@@ -288,10 +283,92 @@ confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 #matrices
 model_info <- list("nfl_team" = unique(nfl_df$possession_team),
                    "train_fit" = as.list(seq(32)),
-                   "test_fit" = as.list(seq(32)),
+                   "prediction" = as.list(seq(32)),
                    "conf_mat" = as.list(seq(32)))
 
-#Use a for loop
+#Specify the logistic formula using the variables selected from lasso
+logistic_formula <- as.formula(paste("run_pass ~",
+                                   paste(selected_vars, collapse = " + ")))
+
+#Use a for loop to create a model for each team and store it in the model info
+#list
+for (i in c(1:32)){
+  
+  #Grab the current team
+  team<-model_info$nfl_team[i]
+  
+  #Add a print statement so we can keep track while its running
+  print(paste("Working on team", team))
+  
+  #Create a data frame with the data for the current team
+  team_df <- nfl_df %>%
+    filter(possession_team==team) %>%
+    mutate(run_pass = as.factor(run_pass))
+  
+  #Sort the data by week
+  weeks <- sort(unique(team_df$week))
+  
+  #Split the data into training and testing
+  team_train <- team_df %>%
+    filter(week==c(1,2,3,4,5,6))
+  
+  team_test <- team_df %>%
+    filter(week==c(7,8,9))
+  
+  #Drop the few data points that are in the testing set but not the training set
+  team_train <- team_train %>% 
+    filter(offense_formation %in% team_test$offense_formation, 
+           receiver_alignment %in% team_test$receiver_alignment)
+
+  team_test <- team_test %>% 
+    filter(offense_formation %in% team_train$offense_formation,
+           receiver_alignment %in% team_train$receiver_alignment)
+  
+  #Fit the logistic regression model using the selected variables
+  final_logistic_model <- glm(
+    formula = logistic_formula,
+    data = nfl_train,
+    family = binomial()
+    )
+  
+  #Extract the model
+  train_fit <- final_logistic_model$model
+  
+  #Add the training fit to the list
+  model_info$train_fit[[i]] <- train_fit
+  
+  # Generate predictions on the test set
+  logistic_predictions_prob <- predict(final_logistic_model,
+                                       newdata = team_test, type = "response")
+  
+  #Convert probabilities to class labels based on a threshold of 0.5
+  logistic_predictions_class <- ifelse(logistic_predictions_prob > 0.5,
+                                       "run", "pass")
+  
+  #Add the predicted classes to the model info list
+  model_info$predictions[[i]]<- logistic_predictions_class
+  
+  
+  
+  #Add predictions to the test dataset
+  team_test <- team_test %>%
+    mutate(predicted_run_pass = logistic_predictions_class)
+  
+  #Make sure that the precited pass column is also a factor like the truth col
+  team_test$predicted_run_pass <- as.factor(team_test$predicted_run_pass)
+  
+  #Add the confusion matrix to the model info list
+  model_info$conf_mat[[i]]<-confusionMatrix(team_test$predicted_run_pass,
+                                            team_test$run_pass)
+  
+  print(team)
+  print(confusionMatrix(team_test$predicted_run_pass,team_test$run_pass))
+  
+}
+
+
+
+
 
 
 
