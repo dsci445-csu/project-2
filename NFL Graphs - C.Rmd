@@ -16,8 +16,53 @@ library(glmnet)
 library(kknn)
 library(caret)
 library(kernlab)
-library(nflplotR)
+#library(nflplotR)
 ```
+
+
+```{r rds-file-read}
+svm_model_info <- readRDS("SVM Model Info by Team.rds")
+```
+
+
+```{r svm-df-building}
+svm_data <- data.frame(team = unique(svm_model_info$nfl_team),
+                       pass_1 = -1, pass_0 = -1, run_1 = -1, run_0 = -1,
+                       mn_pvalue = 1, acc_pvalue = 1, 
+                       bye_week = 0, train_error = 0, num_vec = 0,
+                       spec = 0, sens = 0, pos_pred = 0, neg_pred = 0,
+                       pos_class = "")
+
+for(i in c(1:4)){
+  team <- svm_data$team[i]
+  
+  svm_data$pass_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,1]
+  svm_data$pass_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,1]
+  svm_data$run_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,2]
+  svm_data$run_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,2]
+  
+  svm_data$mn_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[7]
+  
+  svm_data$acc_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[6]
+  
+  svm_data$sens[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[1]
+  svm_data$spec[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[2]
+  svm_data$pos_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[3]
+  svm_data$neg_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[4]
+  
+  svm_data$pos_class[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$positive
+  
+  svm_data$bye_week[i] <- svm_model_info$bye_week[[match(team, svm_model_info$nfl_team)]]
+  
+  temp <- svm_model_info$model[[match(team, svm_model_info$nfl_team)]] %>% extract_fit_parsnip() %>% .$fit
+  
+  svm_data$train_error[i] <- temp@error
+  
+  svm_data$num_vec[i] <- temp@nSV
+}
+
+```
+
 
 
 ```{r run-pass-pred}
