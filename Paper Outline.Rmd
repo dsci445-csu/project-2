@@ -32,3 +32,34 @@ I. Whether the offense will pass or run on the next play most important for defe
   d. go more into the importance of knowing what the defense will do. 
   
 II. We decided to participate in the 2024 big data bowl which asks participants to develop predictive models of pre-snap behavior. (i.e. what happens before the play begins)
+
+
+
+
+## Motivation-
+
+  When it comes to play strategy the most important information for a defense to know is whether the offense will run a pass play or a run play as this would allow them to alter the placement of their players to optimize their chance of making a tackle or otherwise disrupt the play. To this end, we decided to develop a statistical model to predict whether or not the offensive team intends to make a pass or a run pay. We also want to determine if there is significant variation in strategy between teams which could allow coaches to tailor their strategy more effectively to their current opponent. 
+  
+  
+## Methodology-
+  We employed the data sets provided by the NFL to develop our models. We decided to develop a binary classification model that would predict a run or pass play based on a range of important factors. The first of these factors is the amount of time remaining in the half as the end of the game approaches the outcomes of each play become more important in deciding the overall outcome. If a team is further behind near the end of the game they may be more likely to go for a hail mary pass play than they would otherwise during the early game. The next factor we included was a lag analysis of expected points added (EPA) which in simple terms describes the overall success of the play. Running the lag analysis provides a better idea of team behavior. For example, if the last two pass plays were unsuccessful this might lead to a greater chance of a run on the next play. To assist in this we also included a number of other relevant game factors like position, win percentage, and offensive formation. The biggest factor that we wanted to include in our model was whether or not certain players moved shortly before the snap or were still in motion during the snap. After the offense has set its line only certain players like tight ends, wide receivers, and running backs are permitted to move before the snap. The placement of these players may indicate what kind of play the offense intends to execute. Therefore determining if one of these players moved shortly before the snap could indicate that the offense is changing tact (i.e. switching to a run or pass play) right before the play begins.
+  
+  Using these factors we elected to fit a range of models that try to predict which kind of play will be executed. Firstly we decided to employ Lasso regression to identify the most important variables and then fit a basic logistic regression model for classification. This will allow us to have a “baseline” against which to compare our other predictive models. Since the outcome variable is binary (run vs. pass) we decided to employ a support vector machine model (SVM) as well as a K-nearest-neighbors (KNN) model. Finally, we decided to employ a random forest model as well. 
+  
+  
+# Results:
+
+
+## Logistic Regression
+
+
+## KNN
+
+
+## Random Forest
+
+
+## SVM
+
+
+

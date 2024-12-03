@@ -15,6 +15,7 @@ library(tidyverse)
 library(glmnet)
 library(kknn)
 library(caret)
+library(kernlab)
 ```
 
 # Modeling 
@@ -71,17 +72,52 @@ In this document we will develop a statistical model to predict whether the offe
 ```{r data-frame-cleaning}
 nfl_df <- read.csv("data/modeling_data_frame.csv")
 
+folder_path <- ("C:/Users/giant/OneDrive/Desktop/CSU Courses/DSCI 445/Final Project/Repo/project-2/")
+
+nfl_df <- read.csv(paste0(folder_path, "data/modeling_data_frame.csv"))
+
 # define unwanted columns to make modeling formula easier
 unwanted_columns <- c("game_id", "play_id") 
 
 # clean the df to remove unwanted columns and any rows containing NA values
 df_clean <- nfl_df %>% select(-all_of(unwanted_columns)) %>% drop_na()
+
+model_data <- nfl_df %>% 
+  mutate(run_pass = as.factor(run_pass),
+         down = as.factor(down),
+         offense_formation = as.factor(offense_formation),
+         form_change = as.factor(form_change),
+  ) %>% 
+  na.omit() %>% select(-all_of(unwanted_columns))
+
+#Previously removed receiver alignment to ensure models run
+#Now remove formations not commonly used by teams
+
+# Create a data frame of all combinations to remove
+remove_combinations <- data.frame(
+  possession_team = c(
+    "ARI", "ARI", "ATL", "BAL", "BUF", "BUF", "BUF", "CAR", "CAR", "CAR",
+    "CHI", "CLE", "CLE", "DAL", "DEN", "DEN", "DET", "DET", "HOU", "IND",
+    "IND", "IND", "JAX", "JAX", "KC", "KC", "LA", "LV", "LV", "MIA",
+    "MIN", "NE", "NE", "NO", "NYG", "NYJ", "NYJ", "NYJ", "NYJ", "PIT",
+    "PIT", "SEA", "SEA", "SF", "TEN", "TEN", "WAS", "WAS"
+  ),
+  offense_formation = c(
+    "I_FORM", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT",
+    "WILDCAT", "PISTOL", "WILDCAT", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "PISTOL", "JUMBO",
+    "PISTOL", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT", "PISTOL", "JUMBO", "WILDCAT", "WILDCAT",
+    "PISTOL", "PISTOL", "WILDCAT", "JUMBO", "JUMBO", "I_FORM", "JUMBO", "PISTOL", "WILDCAT", "JUMBO",
+    "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT"
+  )
+)
+
+# Filter the dataset using anti_join
+model_data <- model_data %>%
+  anti_join(remove_combinations, by = c("possession_team", "offense_formation"))
 ```
 
-## KNN modeling test for one team
-
 Define getting the bye week function
-```{r}
+```{r helper-functions}
 get_bye_week <- function(weeks){
   # this gets the week number that is missing from the given weeks
   bye_week <- seq(9)[!(seq(9) %in% weeks)]
@@ -99,8 +135,9 @@ test_data_for_augment <- function(model, data){
 }
 ```
 
+## KNN modeling test for one team
 
-```{r knn-one-team}
+```{r week-week}
 set.seed(445)
 
 model_info <- list("nfl_team" = unique(df_clean$possession_team),
@@ -112,8 +149,6 @@ model_info <- list("nfl_team" = unique(df_clean$possession_team),
 
 # initialize a large grid of k vlaues for CV
 grid_large <- tibble(neighbors = seq(0, 100, by = 5)[-1])
-
-break_teams <- c("ATL", "NO")
 
 for(i in c(1:32)){
   team <- model_info$nfl_team[i]
@@ -206,5 +241,330 @@ for(i in c(1:32)){
 }
 ```
 
+
+```{r knn-train-test-split}
+set.seed(445)
+
+model_info <- list("nfl_team" = unique(df_clean$possession_team),
+                   "model" = as.list(seq(32)),
+                   "bye_week" = as.list(seq(32)),
+                   "train_fit" = as.list(seq(32)),
+                   "test_fit" = as.list(seq(32)),
+                   "conf_mat" = as.list(seq(32)))
+
+# initialize a large grid of k vlaues for CV
+grid_large <- tibble(neighbors = seq(0, 100, by = 5)[-1])
+
+for(i in c(1:32)){
+  team <- model_info$nfl_team[i]
+  
+  # if(team %in% break_teams){next}
+  
+  print(paste("Working on team", team))
+  
+  # switch here between model_data (Gabes cleaning) and df_clean (my cleaning)
+  team_df <- model_data %>% 
+    filter(possession_team == team) %>% 
+    mutate(run_pass = as.factor(run_pass))
+  
+  weeks <- sort(unique(team_df$week))
+  
+  model_info$bye_week[[i]] <- get_bye_week(weeks)
+  
+  # training is going to be a 60% split for each team
+  # This is an attempt to avoid errors
+  team_split <- team_df %>% initial_split(prop = 0.5, strata = "run_pass")
+  team_training <- team_split %>% training() %>% select(-possession_team, -week)
+  team_testing <- team_split %>% testing() %>% select(-possession_team, -week)
+  
+  
+  team_training <- team_df %>% filter(offense_formation %in% team_testing$offense_formation, 
+                                      receiver_alignment %in% team_testing$receiver_alignment)
+  
+  team_testing <- team_testing %>% filter(offense_formation %in% team_training$offense_formation, 
+                                          receiver_alignment %in% team_training$receiver_alignment)
+  
+  # training_df <- team_df %>% 
+  #   filter(week <= weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  # # testing data is all weeks not in training
+  # testing_df <- team_df %>% 
+  #   filter(week > weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  
+  knn_tune_spec <- nearest_neighbor(mode = "classification", neighbors = tune("neighbors"))
+  
+  train_cv <- vfold_cv(team_training, v = 10)
+  
+  knn_err <- knn_tune_spec %>%
+    tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_large) %>%
+    collect_metrics() %>%
+    dplyr::filter(.metric == "accuracy") %>%
+    dplyr::mutate(error = 1 - mean)
+  
+  # plot if necessary
+  # ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+  
+  # get minimum k value from first CV
+  knn_min_range <- knn_err$neighbors[knn_err$error == min(knn_err$error)]
+  print(paste("Min K is near", knn_min_range))
+  
+  # build a narrowing k range around the minimum found
+  grid_seq <- seq(knn_min_range[1] - 4, knn_min_range[1] + 4, by = 1)
+  grid_small <-  tibble(neighbors = grid_seq)
+  
+  # re-run to find overall minimum
+  knn_err <- knn_tune_spec %>%
+    tune_grid(run_pass ~ . , resamples = train_cv, grid = grid_small) %>%
+    collect_metrics() %>%
+    dplyr::filter(.metric == "accuracy") %>%
+    dplyr::mutate(error = 1 - mean)
+  
+  
+  # plot if necessary
+  # ggplot(knn_err) + geom_line(aes(x = neighbors, y = error))
+  
+  # get new min k
+  min_k <- min(knn_err$neighbors[knn_err$error == min(knn_err$error)])
+  
+  print(paste("Overall Min K is", min_k))
+  
+  # fit the model with k value found in CV
+  knn_fit <- nearest_neighbor(mode = "classification", neighbors = min_k) %>% 
+    fit(data = team_training, run_pass ~ .)
+  model_info$model[[i]] <- knn_fit
+  
+  # get the fit from the tidy model
+  train_fit <- knn_fit %>% pluck("fit")
+  model_info$train_fit[[i]] <- train_fit
+  
+  # check test data against the model
+  test_predict <- tryCatch({knn_fit %>% augment(team_testing)}, 
+                           error = function(cond){
+                             print(conditionMessage(cond)) 
+                             NA})
+  
+  if(length(is.na(test_predict)) > 1){
+    model_info$test_fit[[i]] <- test_predict
+    
+    # test_predict %>% conf_mat(truth = run_pass, estimate = .pred_class)
+    
+    test_conf_mat <- confusionMatrix(test_predict$.pred_class, test_predict$run_pass)
+    model_info$conf_mat[[i]] <- test_conf_mat
+  }else{
+    model_info$test_fit[[i]] <- paste(team, "errored out")
+    
+    model_info$conf_mat[[i]] <- paste(team, "errored out")
+  }
+  
+}
+```
+
+
+
+
+## SVM modeling
+
+```{r svm-modeling}
+# set seed for reproduction
+set.seed(445)
+# initialize model info storing method
+svm_model_info <- list("nfl_team" = unique(df_clean$possession_team),
+                       "bye_week" = as.list(seq(32)),
+                       "train_fit" = as.list(seq(32)),
+                       "test_fit" = as.list(seq(32)),
+                       "conf_mat" = as.list(seq(32)))
+
+
+# define svm specification for model
+svm_linear_spec <- svm_poly(degree = 1) %>%
+  set_mode("classification") %>%
+  set_engine("kernlab", scaled = FALSE)
+
+# define svm tuning spec
+svm_linear_tune_spec <- svm_poly(degree = 1, cost = tune("cost")) %>%
+  set_mode("classification") %>%
+  set_engine("kernlab", scaled = FALSE)
+
+
+for(i in c(1:32)){
+  # get team abreviation for loop
+  team <- svm_model_info$nfl_team[i]
+  # print statemtn for loop checking during iterations
+  print(paste("Working on team", team))
+  # select only the current team
+  team_df <- model_data %>% dplyr::filter(possession_team == team)
+  # find which weeks were played for this team
+  weeks <- sort(unique(team_df$week))
+  # get the bye week for the team
+  svm_model_info$bye_week[[i]] <- get_bye_week(weeks)
+  # set training data to everything except last 3 weeks
+  team_train <- team_df %>%
+    filter(week <= weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  # set testing data to the last 3 weeks of data
+  team_test <- team_df %>% 
+    filter(week > weeks[(length(weeks)-3)]) %>% select(-possession_team, -week)
+  # these lines make sure these categorical variables only share info so augment doesnt error out
+  team_train <- team_train %>% filter(offense_formation %in% team_test$offense_formation, 
+                                      receiver_alignment %in% team_test$receiver_alignment)
+  
+  team_test <- team_test %>% filter(offense_formation %in% team_train$offense_formation, 
+                                    receiver_alignment %in% team_train$receiver_alignment)
+  
+  # set train cv and cost tuning df
+  team_train_10foldcv <- vfold_cv(team_train, v = 5)
+  df_cost <- grid_regular(cost(), levels = 10)
+
+  # recipe for tuning
+  svm_linear_rec <- recipe(run_pass ~ ., data = team_train)
+  # workflow for tuning
+  svm_linear_wf <- workflow() %>%
+    add_model(svm_linear_tune_spec) %>%
+    add_recipe(svm_linear_rec)
+  # tune fit
+  tune_fit <- svm_linear_wf %>%
+    tune_grid(resamples = team_train_10foldcv, grid = df_cost)
+  # extract the best cv fit
+  svm_linear_final <- finalize_workflow(svm_linear_wf, select_best(tune_fit, metric = "accuracy"))
+  
+  # fit svm model to best tuned version
+  svm_train_fit <- svm_linear_final %>% fit(data = team_train)
+  # store model
+  svm_model_info$model[[i]] <- svm_train_fit
+  # predict with test observations
+  test_predict <- svm_train_fit %>% augment(new_data = team_test)
+  # store test prediction
+  svm_model_info$test_fit[[i]] <- test_predict
+  # run test prediction through confusion matrix
+  test_conf_mat <- confusionMatrix(test_predict$.pred_class, test_predict$run_pass)
+  # store confusion matrix for each team
+  svm_model_info$conf_mat[[i]] <- test_conf_mat
+}
+```
+
+```{r svm-conf-mat}
+svm_data <- data.frame(team = unique(svm_model_info$nfl_team),
+                       pass_1 = -1, pass_0 = -1, run_1 = -1, run_0 = -1,
+                       mn_pvalue = 1, acc_pvalue = 1, 
+                       bye_week = 0, train_error = 0, num_vec = 0,
+                       spec = 0, sens = 0, pos_pred = 0, neg_pred = 0,
+                       pos_class = "")
+
+for(i in c(1:4)){
+  team <- svm_data$team[i]
+  
+  svm_data$pass_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,1]
+  svm_data$pass_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,1]
+  svm_data$run_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,2]
+  svm_data$run_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,2]
+  
+  svm_data$mn_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[7]
+  
+  svm_data$acc_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[6]
+  
+  svm_data$sens[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[1]
+  svm_data$spec[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[2]
+  svm_data$pos_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[3]
+  svm_data$neg_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[4]
+  
+  svm_data$pos_class[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$positive
+  
+  svm_data$bye_week[i] <- svm_model_info$bye_week[[match(team, svm_model_info$nfl_team)]]
+  
+  temp <- svm_model_info$model[[match(team, svm_model_info$nfl_team)]] %>% extract_fit_parsnip() %>% .$fit
+  
+  svm_data$train_error[i] <- temp@error
+  
+  svm_data$num_vec[i] <- temp@nSV
+}
+
+svm_data_test <- svm_data %>% slice(1:4)
+```
+
+save the data
+
+```{r store-svm-data}
+write.csv(svm_data, "data/NFL SVM Results.csv", row.names = F)
+```
+
+
+
+
+# Copied from Justin's code
+```{r lasso-visualization}
+
+#Load in the data set
+nfl_df <- read.csv("data/modeling_data_frame.csv")
+
+
+
+#Make the run pass variable a factor
+nfl_df$run_pass <- as.factor(nfl_df$run_pass)
+
+#Convert the boolean columns into numeric ones
+bool_cols <- c("redzone", "wr_motion", "te_motion", "rb_motion",
+               "wr_atsnap", "te_atsnap", "rb_atsnap")
+nfl_df[bool_cols] <- lapply(nfl_df[bool_cols], as.numeric)
+
+#Remove NA values
+nfl_df <- nfl_df %>%
+  drop_na()
+
+#Use a lasso model to do varaible selection.
+
+#Create a sequence of lambda values to try
+lambda <- lambda <- 10^seq(-2, 10, length.out = 100)
+
+#Create a recipe for the lasso model and normalize the predictors.
+lasso_rec <- recipe(run_pass~., data=nfl_df) %>%
+  
+  #Remove unnecessary variables
+  step_rm(game_id, play_id, possession_team,week) %>%
+  
+  step_novel(all_nominal_predictors()) %>%
+  
+  #Fix error for missing values by assigning them with unknown
+  step_unknown(all_nominal_predictors()) %>%
+  
+  #Fix error where some variables are categorical and not numeric
+  step_dummy(all_nominal_predictors()) %>%
+  
+  #Fix error from some of them having zero variance
+  step_zv(all_predictors())%>%
+  
+  #Normalize the numeric predictors to have mean=0 and sd=1
+  step_normalize(all_numeric_predictors())
+
+#Create an empty data frame to store our lasso estimates
+lasso_ests <- data.frame()
+
+#Fit a lasso model for each lambda in our grid
+for(lam in lambda){
+  lasso_spec <- logistic_reg(mixture=1, penalty=lam)%>%
+    set_mode("classification") %>%
+    set_engine("glmnet")
+  
+  #Fit the model
+  workflow() %>%
+    add_model(lasso_spec) %>%
+    add_recipe(lasso_rec) %>%
+    fit(nfl_df) %>%
+    tidy() %>%
+    bind_rows(lasso_ests)-> lasso_ests
+}
+
+#Create a line plot of 
+lasso_ests %>%
+  filter(term != "(Intercept)") %>%
+  ggplot() +
+  geom_line(aes(penalty, estimate, group = term, colour = term)) +
+  scale_x_continuous(limits = c(0.01, .2), breaks = seq(0, 0.15, 0.025)) +
+  coord_trans(x = "log10")+
+  labs(title = "NFL Run-Pass Relation with Predictors",
+       subtitle = "LASSO Implementation for different lambda values",
+       x = "Lambda Penalty", y = "Coefficient Estimate (beta_hat)",
+       caption = "data from NFL Big Data Bowl Competition") +
+  #The legend is so large it obstructs the graph. You can comment out this line
+  # and view the graph in a new window to get a better idea. 
+  theme(legend.position="none")
+```
 
 

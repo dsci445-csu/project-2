@@ -15,7 +15,6 @@ library(ggplot2)
 library(tidymodels)
 library(tidyr)
 library(tidyverse)
-
 library(glmnet)
 
 ```
@@ -73,8 +72,6 @@ library(glmnet)
 
 #Load in the data set
 nfl_df <- read.csv("data/modeling_data_frame.csv")
-
-
 
 #Make the run pass variable a factor
 nfl_df$run_pass <- as.factor(nfl_df$run_pass)
@@ -147,26 +144,28 @@ lasso_ests |>
   #Use the first 6 weeks of data for training 
   #Use the last 3 weeks of dat for testing
 
+#Grab the data
 nfl_lasso_df <- nfl_df
 
+#Make sure that run pass is a factor not a character type
 nfl_lasso_df$run_pass <- as.factor(nfl_lasso_df$run_pass)
 
+#Encode the boolean columns as numeric
 nfl_lasso_df[bool_cols] <- lapply(nfl_lasso_df[bool_cols], as.numeric)
 
+#Create the training set
 nfl_train <- nfl_lasso_df %>%
   filter(week==c(1,2,3,4,5,6))
 
+#Create the test set
 nfl_test <- nfl_lasso_df %>%
   filter(week==c(7,8,9))
-  
-  
-
-  
 ```
 
 
 
 ```{r}
+#Fit a lasso model and determine the optimum lambda for varaible selection
 
 #Create a data frame for tuning lambda
 tune_df <- data.frame(lambda=lambda)
@@ -194,47 +193,114 @@ tune_results <- tune_grid( lasso_workflow,
                            grid=50)
 
 #Determine the best lambda value
-best_lambda <- select_best(tune_results, metric="accuracy") #best lambda=0.01
+best_lambda <- select_best(tune_results, metric="accuracy") 
 
 #Create the lasso model with the optimum lambda
 final_lasso_workflow <- finalize_workflow(lasso_workflow,  best_lambda)
 
-final_lasso_model <- fit(final_lasso_workflow, data=nfl_train)
+final_lasso_model <- fit(final_lasso_workflow, data=nfl_train) -> final_lasso_fit
 
-final_lasso_model %>% pluck("fit")
+final_model <- extract_fit_parsnip(final_lasso_model)
 
+#Convert the coefficients to a tidy data frame
+selected_variables <- tidy(final_model)
 
-# Generate predictions on the test dataset
+#Generate predictions on the test dataset
 lasso_predictions <- predict(final_lasso_model, nfl_test, type = "class") %>%
   bind_cols(nfl_test)
 
-# Create a confusion matrix
+#Create a confusion matrix
 confusion_mat <- conf_mat(
   data = lasso_predictions,
-  truth = run_pass, # True values
-  estimate = .pred_class # Predicted values
+  truth = run_pass, 
+  estimate = .pred_class
 )
 
-# Print the confusion matrix
+#Print the confusion matrix
 print(confusion_mat)
-
-#Calculate the error rate
-tot <- 1615
-correct <- 1224
-incorrect <- 391
-err_rate <- 391/1615
-acc_rate <- 1-err_rate
-
-#Print the accuracy rate
-acc_rate
 ```
 
 ```{r}
 
+#Fit the logistic model on the entire data set using the varaibles from the 
+#lasso model.
+
+#Look at the output from the optimal lasso model to do variable selection
+selected_vars <-c("down", "yards_to_go", "yards_to_endzone", "sec_in_half",
+                  "epa_lag", "curr_win_percentage", "form_change", "wr_motion",
+                  "te_motion","rb_motion","wr_atsnap", "te_atsnap",
+                  "offense_formation", "receiver_alignment")
+
+#The test set has a level of offense_formation that is not in the training set
+
+#Select the cagetorical variables with multiple levels
+factor_vars <- c("offense_formation", "receiver_alignment")
+
+#Drop the few data points that are in the testing set but not the training set
+nfl_train <- nfl_train %>% filter(offense_formation %in% nfl_test$offense_formation, 
+                                      receiver_alignment %in% nfl_test$receiver_alignment)
+  
+nfl_test <- nfl_test %>% filter(offense_formation %in% nfl_train$offense_formation, 
+                                    receiver_alignment %in% nfl_train$receiver_alignment)
+  
+#Create a formula for logistic regression using selected variables
+logistic_formula <- as.formula(paste("run_pass ~",
+                                     paste(selected_vars, collapse = " + ")))
+
+#Fit the logistic regression model using the selected variables
+final_logistic_model <- glm(
+  formula = logistic_formula,
+  data = nfl_train,
+  family = binomial()
+)
+
+# Generate predictions on the test set
+logistic_predictions_prob <- predict(final_logistic_model,
+                                     newdata = nfl_test, type = "response")
+
+#Convert probabilities to class labels based on a threshold of 0.5
+logistic_predictions_class <- ifelse(logistic_predictions_prob > 0.5, "run", "pass")
+
+#Add predictions to the test dataset
+nfl_test <- nfl_test %>%
+  mutate(predicted_run_pass = logistic_predictions_class)
+
+#Create a confusion matrix
+confusion_matrix <- table(
+  Truth = nfl_test$run_pass,
+  Prediction = nfl_test$predicted_run_pass
+)
+
+#Make sure that the precited pass column is also a factor like the truth col
+nfl_test$predicted_run_pass <- as.factor(nfl_test$predicted_run_pass)
+
+#Create a confusion matrix with the accuracy
+confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
+
+```
+
+```{r}
+
+#Fit the optimal logistic regression model for each team 
+
+
+#Create a list to store the models for each team as well as the confusion
+#matrices
+model_info <- list("nfl_team" = unique(nfl_df$possession_team),
+                   "train_fit" = as.list(seq(32)),
+                   "test_fit" = as.list(seq(32)),
+                   "conf_mat" = as.list(seq(32)))
+
+#Use a for loop
+
 
 
 
 ```
+
+
+
+
 
 
 
