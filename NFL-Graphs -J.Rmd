@@ -7,38 +7,126 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(nflplotR)
 ```
 
 # Graphing
 
-## Matthews Corellation Coefficient
+## Matthews Corellation Coefficient (MCC) by Team
 
 ```{r}
 
+#Load in the data
+log_model_info <- readRDS("Logistic Model Info by Team.rds")
+
 #Convert some of the list objects into data frames for plotting
-team_names <- as.data.frame(model_info$nfl_team)
+team_names <- as.data.frame(log_model_info$nfl_team)
 
+#Rename the column
 team_names <- team_names %>%
-  rename(nfl_team = `model_info$nfl_team`)
+  rename(nfl_team = `log_model_info$nfl_team`)
 
-mcc_vals <- as.data.frame(model_info$m_corr)
+mcc_vals <- as.data.frame(log_model_info$m_corr)
 
 mcc_vals_long <- mcc_vals %>%
   pivot_longer(
-    cols = everything(),        # Select all columns
-    names_to = "variable",      # Create a column for the original column names
-    values_to = "mcc_value"     # Create a column for the values
+    cols = everything(),        
+    names_to = "variable",      
+    values_to = "mcc_value"     
   )
 
 plot_df <- data.frame(Team = team_names$nfl_team, MCC = mcc_vals_long$mcc_value)
 
 #Use the correlations in the model info list to plot correllation by team
 corr_plot <- plot_df %>%
-  ggplot()+
-  geom_point(aes(x=Team, y=MCC))+
-  theme(axis.text.x=element_text(angle=45))
+  ggplot(aes(x=Team, y=MCC))+
+  
+  #Add the team logos for clarity
+  geom_nfl_logos(aes(team_abbr = Team,
+                     width = 0.075,
+                     height=0.1))+
+  
+  #Add appropriate labels
+  labs(x="Team",
+       y="Matthews Correlation Coefficient (MCC)",
+       title="Matthews Correlation Coefficient by Team",
+       subtitle="Logistic Model (LASSO)",
+       caption="Data from: National Football League (2024)")+
+  
+  #Adjust plot elements for neatness
+  theme(axis.text.x=element_text(angle=45),
+        plot.title= element_text(hjust=0.5),
+        plot.subtitle = element_text(hjust = 0.5))
 
 corr_plot
 
 ```
+
+## Data Cleaning
+```{r}
+
+
+
+#Use Chandlers code to create the appropriate data for plotting
+
+#Create a data frame with indicators for pass and run as well as
+#the Mcnemar's Test P-Value, accuracy p-value, sensitivity, specificity,etc
+log_data <- data.frame(team=unique(log_model_info$nfl_team),
+                            pass_1= -1, pass_0= -1, run_1=-1, run_0=-1,
+                            mn_pvalue=1, acc_pvalue=1, spec=0, sens=0,
+                            pos_pred=0, neg_pred=0, pos_class="")
+
+#Calculate the values that belong in the new columns
+
+for(i in c(1:32)){
+  
+  #Extract the current team
+  team<- log_data$team[i]
+  
+  logd_data$pass_1[i] <- log_model_info$conf_mat[[match(team,log_model_info$nfl_team)]]$table[1,1]
+  log_data$pass_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,1]
+  log_data$run_1[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,2]
+  log_data$run_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[1,2]
+  log_data$mn_pvalue[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$overall[7]
+  log_data$acc_pvalue[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$overall[6]
+  log_data$sens[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[1]
+  log_data$spec[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[2]
+  log_data$pos_pred[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[3]
+  log_data$neg_pred[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[4]
+  log_data$pos_class[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$positive
+}
+
+```
+
+## Sensitivity vs. Specificity
+
+```{r}
+
+#Create a plot of specificity vs. sensitivity
+sens_vs_spec_plot <-log_data %>%
+  ggplot(aes(x = sens, y = spec)) +
+  
+  #Add the team logos for clarity
+  geom_nfl_logos(aes(team_abbr = team,
+                     width = 0.075,
+                     height=0.1))+
+  
+  #Add appropriate labels
+  labs(x="Sensitivity (True Positive Rate)",
+       y="Specificity (True Negative Rate)",
+       title="Specificity vs. Sensitivity by Team",
+       subtitle="Logistic Model (LASSO)",
+       
+       #Cite the data source
+       caption="Data from :National Football League (2024)")+
+  
+  #Justify plot elements for neatness
+  theme(plot.title= element_text(hjust=0.5),
+        plot.subtitle = element_text(hjust=0.5))
+
+#Display the plot
+sens_vs_spec_plot
+```
+
+
 

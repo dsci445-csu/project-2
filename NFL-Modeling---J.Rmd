@@ -356,8 +356,6 @@ for (i in c(1:32)){
   #Add the predicted classes to the model info list
   model_info$predictions[[i]]<- logistic_predictions_class
   
-  
-  
   #Add predictions to the test dataset
   team_test <- team_test %>%
     mutate(predicted_run_pass = logistic_predictions_class)
@@ -377,15 +375,10 @@ for (i in c(1:32)){
   print(team)
   print(confusionMatrix(team_test$predicted_run_pass,team_test$run_pass))
   print(model_info$m_corr[[i]])
-  
 }
 
-
-
-
-
-
-
+#Save the data
+saveRDS(model_info, "Logistic Model Info by Team.rds")
 
 ```
 
