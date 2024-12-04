@@ -17,15 +17,16 @@ library(kknn)
 library(caret)
 library(kernlab)
 library(nflplotR)
+library(kableExtra)
 ```
 
 
-```{r rds-file-read}
+```{r rds-file-read, include=F}
 svm_model_info <- readRDS("SVM Model Info by Team.rds")
 ```
 
 
-```{r conference-mapping}
+```{r conference-mapping, include=F}
 afc <- c("KC", "BUF", "PIT", "LAC", "HOU", "BAL", "DEN", "IND", "MIA", "CIN", 
          "CLE", "NYJ", "TEN", "NE", "JAX", "LV")
 nfc <- c("DET", "PHI", "MIN", "GB", "WAS", "SEA", "ATL", "TB", "ARI", "LAR", 
@@ -33,7 +34,7 @@ nfc <- c("DET", "PHI", "MIN", "GB", "WAS", "SEA", "ATL", "TB", "ARI", "LAR",
 
 ```
 
-```{r run-pass-prop}
+```{r run-pass-prop, include=F}
 nfl_data <- read.csv("data/modeling_data_frame.csv")
 
 run_pass_prop <- nfl_data %>% 
@@ -42,11 +43,13 @@ run_pass_prop <- nfl_data %>%
             tot_pass = sum(run_pass == "pass")) %>% 
   ungroup() %>%
   rename(team = "possession_team")
+
+win_loss <- read.csv("data/win_loss.csv")
 ```
 
 
 
-```{r svm-df-building}
+```{r svm-df-building, include=F}
 # organize teams by conference
 afc <- c("KC", "BUF", "PIT", "LAC", "HOU", "BAL", "DEN", "IND", "MIA", "CIN", 
          "CLE", "NYJ", "TEN", "NE", "JAX", "LV")
@@ -64,7 +67,7 @@ svm_data <- data.frame(team = unique(svm_model_info$nfl_team),
 for(i in c(1:32)){
   # get current team in data
   team <- svm_data$team[i]
-
+  
   # get the run pass values for prediciton out of the model
   svm_data$pass_1[i] <- svm_model_info$conf_mat[[i]]$table[1,1]
   svm_data$pass_0[i] <- svm_model_info$conf_mat[[i]]$table[2,1]
@@ -103,8 +106,10 @@ for(i in c(1:32)){
 }
 
 svm_data <- svm_data %>% left_join(run_pass_prop, by = "team") %>%
+  left_join(win_loss, by = "team") %>%
   mutate(play_prop = ifelse(tot_run > tot_pass, "More Runs", "More Passes"),
-         mcc = ((run_1 * pass_1) - (run_0 * pass_0))/ sqrt((pass_1 + pass_0) * (pass_1 + run_0) * (run_1 + pass_0) * run_1 + run_0))
+         mcc = ((run_1 * pass_1) - (run_0 * pass_0))/ sqrt((pass_1 + pass_0) * (pass_1 + run_0) * (run_1 + pass_0) * (run_1 + run_0)),
+         wining_record = ifelse(wins > losses, "Winning Team", "Losing Team"))
 
 ```
 
@@ -120,7 +125,7 @@ s <- 1.25
 svm_data %>%
   ggplot(aes(y = sens, x = spec)) +
   geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
-  labs(title = "SVM Classifier Prediction on NFL Teams",
+  labs(title = "SVM Classifier Prediction on NFL Offenses - Run or Pass",
        subtitle = "2022 Regular Season Through Week 9",
        y = "Pass Prediction % (Sensitivity)",
        x = "Run Prediction % (Specificity)",
@@ -130,13 +135,38 @@ svm_data %>%
 s <- 2
 svm_data %>%
   ggplot(aes(y = sens, x = spec)) +
-  facet_wrap(play_prop~., nrow = 2) +
+  facet_wrap(wining_record~., nrow = 2) +
   geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
-  labs(title = "SVM Classifier Prediction on NFL Teams",
+  labs(title = "SVM Classifier Prediction on NFL Offenses - Run or Pass",
        subtitle = "2022 Regular Season Through Week 9",
        y = "Pass Prediction % (Sensitivity)",
        x = "Run Prediction % (Specificity)",
        caption = "data from NFL Big Data Bowl") +
   theme_bw()
+
+s <- 1
+svm_data %>%
+  ggplot(aes(y = mcc, x = team)) +
+  geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
+  geom_hline(yintercept = 0, color = "red") + 
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "Using SVM Classifier",
+       y = "Matthews Correlation Coefficient (MCC)",
+       x = "",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9") +
+  scale_y_continuous(limits = c(-0.3, 0.8)) +
+  theme_bw() + 
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+
 ```
+
+
+```{r summary-tables}
+
+svm_data %>% select(team, wins, mcc) %>%
+  arrange(mcc) %>% slice(1:5) %>% kable()
+
+```
+
 
