@@ -14,6 +14,8 @@ library(dplyr)
 library(ranger)
 library(tidyverse)
 library(pROC)
+library(nflplotR)
+library(nflreadr)
 ```
 
 Data
@@ -622,70 +624,9 @@ list$models$full$probs <- probs_full
 #############
 Team analysis
 
-Structure:
-```{r}
-#Teams
-teams <- names(team_results)
-
-NFL_rf_results <- data.frame()
-
-# NFL_rf_results <- data.frame(
-#   team = NA,
-#   #Full Model(raw)
-#   full_acc = NA,
-#   full_pa_acc = NA,
-#   full_ru_acc = NA,
-#   full_ppv = NA,
-#   full_npv = NA,
-#   #Full Model(alt)
-#   full_alt_acc = NA,
-#   full_alt_pa_acc = NA,
-#   full_alt_ru_acc = NA,
-#   full_alt_ppv = NA,
-#   full_alt_npv = NA,
-#   #Full: raw or alt?
-#   full_opt = NA,
-#   full_best = NA,
-#   
-#   #Rec1 Model(raw)
-#   rec1_acc = NA,
-#   rec1_pa_acc = NA,
-#   rec1_ru_acc = NA,
-#   rec1_ppv = NA,
-#   rec1_npv = NA,
-#   #Rec1 Model(alt)
-#   rec1_alt_acc = NA,
-#   rec1_alt_pa_acc = NA,
-#   rec1_alt_ru_acc = NA,
-#   rec1_alt_ppv = NA,
-#   rec1_alt_npv = NA,
-#   #Rec1: raw or alt?
-#   rec1_opt = NA,
-#   rec1_best = NA,
-#   
-#   #Rec2 Model(raw)
-#   rec2_acc = NA,
-#   rec2_pa_acc = NA,
-#   rec2_ru_acc = NA,
-#   rec2_ppv = NA,
-#   rec2_npv = NA,
-#   #Rec2 Model(alt)
-#   rec2_alt_acc = NA,
-#   rec2_alt_pa_acc = NA,
-#   rec2_alt_ru_acc = NA,
-#   rec2_alt_ppv = NA,
-#   rec2_alt_npv = NA,
-#   #Rec2: raw or alt?
-#   rec2_opt = NA,
-#   rec2_best = NA
-# )
-
-sum(team_results$BUF$data$rec2_test$run_pass == "run")
-```
 
 
-
-
+Test
 ```{r}
 for (team in teams) {
   # First calculate all the accuracy values
@@ -700,6 +641,14 @@ for (team in teams) {
     team = team,
     
     #Full
+    full_TP = team_results[[team]]$models$full$confmat$table[2,2],
+    full_TN = team_results[[team]]$models$full$confmat$table[1,1],
+    full_FP = team_results[[team]]$models$full$confmat$table[2,1],
+    full_FN = team_results[[team]]$models$full$confmat$table[1,2],
+    
+    full_MCC = (full_TP*full_TN - full_FP*full_FN) /  
+               sqrt((full_TP+full_FP)*(full_TP+full_FN)*(full_TN+full_FP)*(full_TN+full_FN)),
+    
     full_acc = full_acc,
     full_test_n_run = sum(team_results[[team]]$data$full_test$run_pass == "run"),
     full_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
@@ -707,6 +656,16 @@ for (team in teams) {
     full_ru_acc = team_results[[team]]$models$full$confmat$byClass[[1]], 
     full_pa_npv = team_results[[team]]$models$full$confmat$byClass[[4]],  
     full_ru_ppv = team_results[[team]]$models$full$confmat$byClass[[3]],
+    
+    #Full Alt
+    full_alt_TP = team_results[[team]]$models$full$confmat$table[2,2],
+    full_alt_TN = team_results[[team]]$models$full$confmat$table[1,1],
+    full_alt_FP = team_results[[team]]$models$full$confmat$table[2,1],
+    full_alt_FN = team_results[[team]]$models$full$confmat$table[1,2],
+    
+    full_alt_MCC = (full_alt_TP*full_alt_TN - full_alt_FP*full_alt_FN) /  
+               sqrt((full_alt_TP+full_alt_FP)*(full_alt_TP+full_alt_FN)*
+                      (full_alt_TN+full_alt_FP)*(full_alt_TN+full_alt_FN)),
     
     full_alt_acc = full_alt_acc,
     full_alt_pa_acc = team_results[[team]]$models$full$confmat_opt$byClass[[2]],
@@ -718,6 +677,14 @@ for (team in teams) {
     full_best = ifelse(full_acc >= full_alt_acc, "raw", "alt"),
     
     #Rec1
+    rec1_TP = team_results[[team]]$models$rec1$confmat$table[2,2],
+    rec1_TN = team_results[[team]]$models$rec1$confmat$table[1,1],
+    rec1_FP = team_results[[team]]$models$rec1$confmat$table[2,1],
+    rec1_FN = team_results[[team]]$models$rec1$confmat$table[1,2],
+    
+    rec1_MCC = (rec1_TP*rec1_TN - rec1_FP*rec1_FN) /  
+               sqrt((rec1_TP+rec1_FP)*(rec1_TP+rec1_FN)*(rec1_TN+rec1_FP)*(rec1_TN+rec1_FN)),
+    
     rec1_acc = rec1_acc,
     rec1_test_n_run = sum(team_results[[team]]$data$rec1_test$run_pass == "run"),
     rec1_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
@@ -725,6 +692,18 @@ for (team in teams) {
     rec1_ru_acc = team_results[[team]]$models$rec1$confmat$byClass[[1]], 
     rec1_pa_npv = team_results[[team]]$models$rec1$confmat$byClass[[4]],  
     rec1_ru_ppv = team_results[[team]]$models$rec1$confmat$byClass[[3]],
+    
+    ## Alt
+    
+    rec1_alt_TP = team_results[[team]]$models$rec1$confmat_opt$table[2,2],
+    rec1_alt_TN = team_results[[team]]$models$rec1$confmat_opt$table[1,1],
+    rec1_alt_FP = team_results[[team]]$models$rec1$confmat_opt$table[2,1],
+    rec1_alt_FN = team_results[[team]]$models$rec1$confmat_opt$table[1,2],
+    
+    rec1_alt_MCC = (rec1_alt_TP*rec1_alt_TN - rec1_alt_FP*rec1_alt_FN) /  
+                   sqrt((rec1_alt_TP+rec1_alt_FP)*(rec1_alt_TP+rec1_alt_FN)*
+                        (rec1_alt_TN+rec1_alt_FP)*(rec1_alt_TN+rec1_alt_FN)),
+    
     
     rec1_alt_acc = rec1_alt_acc,
     rec1_alt_pa_acc = team_results[[team]]$models$rec1$confmat_opt$byClass[[2]],
@@ -736,6 +715,14 @@ for (team in teams) {
     rec1_best = ifelse(rec1_acc >= rec1_alt_acc, "raw", "alt"),
     
     #Rec2
+    rec2_TP = team_results[[team]]$models$rec2$confmat$table[2,2],
+    rec2_TN = team_results[[team]]$models$rec2$confmat$table[1,1],
+    rec2_FP = team_results[[team]]$models$rec2$confmat$table[2,1],
+    rec2_FN = team_results[[team]]$models$rec2$confmat$table[1,2],
+    
+    rec2_MCC = (rec2_TP*rec2_TN - rec2_FP*rec2_FN) /  
+               sqrt((rec2_TP+rec2_FP)*(rec2_TP+rec2_FN)*(rec2_TN+rec2_FP)*(rec2_TN+rec2_FN)),
+    
     rec2_acc = rec2_acc,
     rec2_test_n_run = sum(team_results[[team]]$data$rec1_test$run_pass == "run"),
     rec2_test_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass"),
@@ -743,6 +730,16 @@ for (team in teams) {
     rec2_ru_acc = team_results[[team]]$models$rec2$confmat$byClass[[1]], 
     rec2_pa_npv = team_results[[team]]$models$rec2$confmat$byClass[[4]],  
     rec2_ru_ppv = team_results[[team]]$models$rec2$confmat$byClass[[3]],
+    
+    ## Alt
+    rec2_alt_TP = team_results[[team]]$models$rec2$confmat_opt$table[2,2],
+    rec2_alt_TN = team_results[[team]]$models$rec2$confmat_opt$table[1,1],
+    rec2_alt_FP = team_results[[team]]$models$rec2$confmat_opt$table[2,1],
+    rec2_alt_FN = team_results[[team]]$models$rec2$confmat_opt$table[1,2],
+    
+    rec2_alt_MCC = (rec2_alt_TP*rec2_alt_TN - rec2_alt_FP*rec2_alt_FN) /  
+                   sqrt((rec2_alt_TP+rec2_alt_FP)*(rec2_alt_TP+rec2_alt_FN)*
+                        (rec2_alt_TN+rec2_alt_FP)*(rec2_alt_TN+rec2_alt_FN)),
     
     rec2_alt_acc = rec2_alt_acc,
     rec2_alt_pa_acc = team_results[[team]]$models$rec2$confmat_opt$byClass[[2]],
@@ -766,15 +763,217 @@ NFL_rf_results
 
 
 
+```{r}
+#Teams
+teams <- names(team_results)
+
+# First initialize the empty data frame with all columns
+NFL_rf_results <- data.frame()
+
+# Then run your loop code
+
+for (team in teams) {
+  
+  # Calculate accuracy values
+ full_acc <- team_results[[team]]$models$full$confmat$overall[[1]]
+ rec1_acc <- team_results[[team]]$models$rec1$confmat$overall[[1]]
+ rec2_acc <- team_results[[team]]$models$rec2$confmat$overall[[1]]
+
+ # Full model confusion matrix values
+ full_TP <- team_results[[team]]$models$full$confmat$table[2,2]
+ full_TN <- team_results[[team]]$models$full$confmat$table[1,1]
+ full_FP <- team_results[[team]]$models$full$confmat$table[2,1]
+ full_FN <- team_results[[team]]$models$full$confmat$table[1,2]
+
+ 
+ # Rec1 model confusion matrix values
+ rec1_TP <- team_results[[team]]$models$rec1$confmat$table[2,2]
+ rec1_TN <- team_results[[team]]$models$rec1$confmat$table[1,1]
+ rec1_FP <- team_results[[team]]$models$rec1$confmat$table[2,1]
+ rec1_FN <- team_results[[team]]$models$rec1$confmat$table[1,2]
+ 
+ 
+ # Rec2 model confusion matrix values
+ rec2_TP <- team_results[[team]]$models$rec2$confmat$table[2,2]
+ rec2_TN <- team_results[[team]]$models$rec2$confmat$table[1,1]
+ rec2_FP <- team_results[[team]]$models$rec2$confmat$table[2,1]
+ rec2_FN <- team_results[[team]]$models$rec2$confmat$table[1,2]
+ 
+ 
+ full_MCC = (full_TP*full_TN - full_FP*full_FN) /  
+               sqrt((full_TP+full_FP)*(full_TP+full_FN)*(full_TN+full_FP)*(full_TN+full_FN))
+
+ 
+ rec1_MCC = (rec1_TP*rec1_TN - rec1_FP*rec1_FN) /  
+               sqrt((rec1_TP+rec1_FP)*(rec1_TP+rec1_FN)*(rec1_TN+rec1_FP)*(rec1_TN+rec1_FN))
+ 
+
+ rec2_MCC = (rec2_TP*rec2_TN - rec2_FP*rec2_FN) /  
+               sqrt((rec2_TP+rec2_FP)*(rec2_TP+rec2_FN)*(rec2_TN+rec2_FP)*(rec2_TN+rec2_FN))
+  
+  data <- data.frame(
+    team = team,
+    
+    #Full
+    
+    full_acc = full_acc,
+    full_MCC = full_MCC,
+
+    full_n_run = sum(team_results[[team]]$data$full_test$run_pass == "run") +
+                      sum(team_results[[team]]$data$full_train$run_pass == "run"),
+    full_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass") +
+                        sum(team_results[[team]]$data$full_train$run_pass == "pass"),
+    full_pa_acc = team_results[[team]]$models$full$confmat$byClass[[2]],
+    full_ru_acc = team_results[[team]]$models$full$confmat$byClass[[1]],
+    full_pa_npv = team_results[[team]]$models$full$confmat$byClass[[4]],
+    full_ru_ppv = team_results[[team]]$models$full$confmat$byClass[[3]],
+
+
+    #Rec1
+
+    rec1_acc = rec1_acc,
+    rec1_MCC = rec1_MCC,
+    rec1_pa_acc = team_results[[team]]$models$rec1$confmat$byClass[[2]],
+    rec1_ru_acc = team_results[[team]]$models$rec1$confmat$byClass[[1]],
+    rec1_pa_npv = team_results[[team]]$models$rec1$confmat$byClass[[4]],
+    rec1_ru_ppv = team_results[[team]]$models$rec1$confmat$byClass[[3]],
+
+
+    #Rec2
+
+    rec2_acc = rec2_acc,
+    rec2_MCC = rec2_MCC,
+    rec2_pa_acc = team_results[[team]]$models$rec2$confmat$byClass[[2]],
+    rec2_ru_acc = team_results[[team]]$models$rec2$confmat$byClass[[1]],
+    rec2_pa_npv = team_results[[team]]$models$rec2$confmat$byClass[[4]],
+    rec2_ru_ppv = team_results[[team]]$models$rec2$confmat$byClass[[3]]
+
+
+  )
+  
+  NFL_rf_results <- rbind(NFL_rf_results, data)
+  
+}
+
+
+NFL_rf_results <- NFL_rf_results %>% 
+  mutate(run_prop = full_n_run/(full_n_run + full_n_pass),
+         pass_prop = full_n_pass/(full_n_pass + full_n_run))
+```
+
+Team names/abbs
+```{r}
+team_abbr <- nflreadr::load_teams() %>% select(team_abbr) %>% pull()
+
+setdiff(team_abbr, NFL_rf_results$team)
+
+#Everything matches
+```
+
+
+Graphs:
+```{r}
+#Prop run vs pass
+
+colors_df <- 0
+
+NFL_long <- NFL_rf_results %>%
+  select(team, pass_prop, run_prop) %>% 
+  pivot_longer(
+    cols = c(pass_prop, run_prop),
+    names_to = "type",
+    values_to = "prop"
+  )
+
+ggplot(NFL_long, aes(x = team, y = prop, fill = type)) +
+  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
+  scale_fill_manual(values = c("pass_prop" = "blue", "run_prop" = "red"),
+                   labels = c("Pass", "Run"))
 
 
 
+############ Claude Tests
 
 
+NFL_long %>%
+  ggplot(aes(x = team, y = prop, fill = type)) +
+  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
+  nflplotR::scale_fill_nfl() +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05) +  # This replaces scale_x_nfl
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank()) +  # Remove x-axis text since we have logos
+  labs(title = "Pass vs Run Play Distribution by Team",
+       y = "Proportion",
+       fill = "Play Type")
+```
 
+```{r}
+#run/pass accuracy
+ggplot(data = NFL_rf_results, aes(x = full_ru_acc, y = full_pa_acc)) +
+  geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
+  geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
+  scale_x_continuous(limits = c(0.5,1)) + 
+  scale_y_continuous(limits = c(0.5,1)) +
+  annotate("text", x = 0.95, y = 0.95, size = 3.5, label = "Above avg. run acc,
+           Above avg. pass acc") +
+  annotate("text", x = 0.95, y = 0.55, size = 3.5, label = "Above average run acc,
+           Below avg pass acc") +
+  annotate("text", x = 0.55, y = 0.55, size = 3.5, label = "Below average run acc,
+           Below avg pass acc") +
+  annotate("text", x = 0.55, y = 0.95, size = 3.5, label = "Below average run acc,
+           Above avg pass acc") +
+  labs(title = "Model Performance Accuracy for NFL Teams by Run and Pass Plays",
+       xlab = "Run Play Accuracy",
+       ylab = "Pass Play Accuracy")
 
+  
 
+```
 
+```{r}
+#run/pass predictive value
+ggplot(data = NFL_rf_results, aes(x = full_ru_ppv, y = full_pa_npv)) +
+  geom_hline(yintercept = mean(NFL_rf_results$full_pa_npv), alpha = 0.75) +
+  geom_vline(xintercept = mean(NFL_rf_results$full_ru_ppv), alpha = 0.75) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
+  scale_x_continuous(limits = c(0.45,1)) + 
+  scale_y_continuous(limits = c(0.45,1)) +
+  annotate("text", x = 0.95, y = 0.95, size = 3.5, label = "Above avg. run conf,
+           Above avg. pass conf") +
+  annotate("text", x = 0.95, y = 0.55, size = 3.5, label = "Above average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.55, size = 3.5, label = "Below average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.95, size = 3.5, label = "Below average run conf,
+           Above avg pass conf") +
+  labs(title = "Model Prediction Confidence for NFL Teams by Run and Pass Plays",
+       xlab = "Run Play Confidence",
+       ylab = "Pass Play Confidence")
 
+```
+
+```{r}
+#MCC
+ggplot(data = NFL_rf_results, aes(x = team, y = full_MCC)) +
+  geom_hline(yintercept = 0, alpha = 0.75, color = "red") +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
+  scale_y_continuous(limits = c(-0.3,0.8)) +
+  theme_bw() +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  labs(title = "Model Prediction Confidence for NFL Teams by Run and Pass Plays",
+       xlab = "Run Play Confidence",
+       ylab = "Pass Play Confidence")
+```
+```{r}
+#Variable importance
+```
+
+```{r}
+#Wins and MCC?
+```
 
 
