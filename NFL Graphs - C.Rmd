@@ -16,7 +16,7 @@ library(glmnet)
 library(kknn)
 library(caret)
 library(kernlab)
-#library(nflplotR)
+library(nflplotR)
 ```
 
 
@@ -25,50 +25,118 @@ svm_model_info <- readRDS("SVM Model Info by Team.rds")
 ```
 
 
+```{r conference-mapping}
+afc <- c("KC", "BUF", "PIT", "LAC", "HOU", "BAL", "DEN", "IND", "MIA", "CIN", 
+         "CLE", "NYJ", "TEN", "NE", "JAX", "LV")
+nfc <- c("DET", "PHI", "MIN", "GB", "WAS", "SEA", "ATL", "TB", "ARI", "LAR", 
+         "SF", "DAL", "NO", "CHI", "CAR", "NYG")
+
+```
+
+```{r run-pass-prop}
+nfl_data <- read.csv("data/modeling_data_frame.csv")
+
+run_pass_prop <- nfl_data %>% 
+  group_by(possession_team) %>% 
+  summarise(tot_run = sum(run_pass == "run"),
+            tot_pass = sum(run_pass == "pass")) %>% 
+  ungroup() %>%
+  rename(team = "possession_team")
+```
+
+
+
 ```{r svm-df-building}
+# organize teams by conference
+afc <- c("KC", "BUF", "PIT", "LAC", "HOU", "BAL", "DEN", "IND", "MIA", "CIN", 
+         "CLE", "NYJ", "TEN", "NE", "JAX", "LV")
+nfc <- c("DET", "PHI", "MIN", "GB", "WAS", "SEA", "ATL", "TB", "ARI", "LAR", 
+         "SF", "DAL", "NO", "CHI", "CAR", "NYG")
+
+# initialize df
 svm_data <- data.frame(team = unique(svm_model_info$nfl_team),
                        pass_1 = -1, pass_0 = -1, run_1 = -1, run_0 = -1,
                        mn_pvalue = 1, acc_pvalue = 1, 
                        bye_week = 0, train_error = 0, num_vec = 0,
                        spec = 0, sens = 0, pos_pred = 0, neg_pred = 0,
-                       pos_class = "")
+                       pos_class = "", conf = "")
 
-for(i in c(1:4)){
+for(i in c(1:32)){
+  # get current team in data
   team <- svm_data$team[i]
+
+  # get the run pass values for prediciton out of the model
+  svm_data$pass_1[i] <- svm_model_info$conf_mat[[i]]$table[1,1]
+  svm_data$pass_0[i] <- svm_model_info$conf_mat[[i]]$table[2,1]
+  svm_data$run_1[i] <- svm_model_info$conf_mat[[i]]$table[2,2]
+  svm_data$run_0[i] <- svm_model_info$conf_mat[[i]]$table[1,2]
   
-  svm_data$pass_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,1]
-  svm_data$pass_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,1]
-  svm_data$run_1[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[2,2]
-  svm_data$run_0[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$table[1,2]
+  # get mcneymar p-value
+  svm_data$mn_pvalue[i] <- svm_model_info$conf_mat[[i]]$overall[7]
   
-  svm_data$mn_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[7]
+  # get accuracy p-value
+  svm_data$acc_pvalue[i] <- svm_model_info$conf_mat[[i]]$overall[6]
   
-  svm_data$acc_pvalue[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$overall[6]
+  # get sensitivity, specificity, possitive predicted value and negative predicted value
+  svm_data$sens[i] <- svm_model_info$conf_mat[[i]]$byClass[1]
+  svm_data$spec[i] <- svm_model_info$conf_mat[[i]]$byClass[2]
+  svm_data$pos_pred[i] <- svm_model_info$conf_mat[[i]]$byClass[3]
+  svm_data$neg_pred[i] <- svm_model_info$conf_mat[[i]]$byClass[4]
   
-  svm_data$sens[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[1]
-  svm_data$spec[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[2]
-  svm_data$pos_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[3]
-  svm_data$neg_pred[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$byClass[4]
+  # get which factor level was the "positive" class
+  svm_data$pos_class[i] <- svm_model_info$conf_mat[[i]]$positive
   
-  svm_data$pos_class[i] <- svm_model_info$conf_mat[[match(team, svm_model_info$nfl_team)]]$positive
+  # get the bye week for each team
+  svm_data$bye_week[i] <- svm_model_info$bye_week[[i]]
   
-  svm_data$bye_week[i] <- svm_model_info$bye_week[[match(team, svm_model_info$nfl_team)]]
+  # store the model S4 object in a temp variable for access
+  temp <- svm_model_info$model[[i]] %>% extract_fit_parsnip() %>% .$fit
   
-  temp <- svm_model_info$model[[match(team, svm_model_info$nfl_team)]] %>% extract_fit_parsnip() %>% .$fit
-  
+  # get model training error
   svm_data$train_error[i] <- temp@error
   
+  # get number of vectors used in model
   svm_data$num_vec[i] <- temp@nSV
+  
+  # get the conference for each team
+  svm_data$conf[i] <- ifelse(team %in% afc, "AFC", "NFC")
 }
+
+svm_data <- svm_data %>% left_join(run_pass_prop, by = "team") %>%
+  mutate(play_prop = ifelse(tot_run > tot_pass, "More Runs", "More Passes"),
+         mcc = ((run_1 * pass_1) - (run_0 * pass_0))/ sqrt((pass_1 + pass_0) * (pass_1 + run_0) * (run_1 + pass_0) * run_1 + run_0))
 
 ```
 
+Positive class = "pass"
+Negative class = "run"
+Sensitivity refers to pass
+Specificity refers to run
 
+```{r graph-tests}
+# this number will scale the image sizes proportionally for testing
+s <- 1.25
 
-```{r run-pass-pred}
-svm_data_test %>%
-  ggplot(aes(x = sens, y = spec)) +
-  geom_nfl_logos(aes(team_abbr = team))
+svm_data %>%
+  ggplot(aes(y = sens, x = spec)) +
+  geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
+  labs(title = "SVM Classifier Prediction on NFL Teams",
+       subtitle = "2022 Regular Season Through Week 9",
+       y = "Pass Prediction % (Sensitivity)",
+       x = "Run Prediction % (Specificity)",
+       caption = "data from NFL Big Data Bowl") +
+  theme_bw()
 
+s <- 2
+svm_data %>%
+  ggplot(aes(y = sens, x = spec)) +
+  facet_wrap(play_prop~., nrow = 2) +
+  geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
+  labs(title = "SVM Classifier Prediction on NFL Teams",
+       subtitle = "2022 Regular Season Through Week 9",
+       y = "Pass Prediction % (Sensitivity)",
+       x = "Run Prediction % (Specificity)",
+       caption = "data from NFL Big Data Bowl") +
+  theme_bw()
 ```
 
