@@ -133,10 +133,11 @@ spec_sens_svm <- svm_data %>%
        y = "Pass Prediction % (Sensitivity)",
        x = "Run Prediction % (Specificity)",
        caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9") +
-  theme_minimal() +
+  theme_bw() +
   theme(
     # this just makes the background flat white
-    plot.background = ggplot2::element_rect(fill = "#F0F0F0"),
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 20),
     plot.subtitle = element_text(hjust = 0.5, size = 14),
     axis.text = element_text(size = 10),
@@ -187,7 +188,7 @@ graph_width <- 12
 graph_height <- 7
 ggsave("graphs/MCC for SVM.png", mcc_svm, width = graph_width, height = graph_height)
 
-ggsave("graphs/SVM Specificity Sensitivity Graph.png", spec_sens_svm, width = graph_width, height = graph_height)
+ggsave("graphs/SVM Specificity Sensitivity Graph - BW Theme.png", spec_sens_svm, width = graph_width, height = graph_height)
 ```
 
 
