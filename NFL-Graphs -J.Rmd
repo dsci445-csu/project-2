@@ -35,7 +35,9 @@ mcc_vals_long <- mcc_vals %>%
     values_to = "mcc_value"     
   )
 
-plot_df <- data.frame(Team = team_names$nfl_team, MCC = mcc_vals_long$mcc_value)
+#Combine the two into a single data frame for plotting
+plot_df <- data.frame(Team = team_names$nfl_team,
+                      MCC = mcc_vals_long$mcc_value)
 
 #Use the correlations in the model info list to plot correllation by team
 corr_plot <- plot_df %>%
@@ -46,20 +48,54 @@ corr_plot <- plot_df %>%
                      width = 0.075,
                      height=0.1))+
   
+  #Add a horizontal line at y=0 to visualize the boundary
+  geom_hline(yintercept = 0, color="red")+
+  
+  #Label the two points with the highest (best) MCC
+  annotate("text", x="HOU", y=0.5, label="Best Agreement",
+           color="steelblue")+
+  annotate("segment", 
+           x="DEN", xend="BUF",
+           y=0.5, yend=0.53,
+           size=2,colour="steelblue",
+           alpha=0.6,arrow=arrow())+
+  annotate("segment", 
+           x="KC", xend="NE",
+           y=0.5, yend=0.45,
+           size=2,colour="steelblue",
+           alpha=0.6,arrow=arrow())+
+  
+  #Label a point where MCC is approximately 0
+  #i.e. teams where the model was as good as randomly guessing
+  annotate("text", x="CIN", y=0.08, label="Random Guessing",
+           color="steelblue")+
+  annotate("segment", x="DEN" ,xend="HOU", y=0.05, yend=0,
+           size=2, alpha=0.6,color="steelblue",
+           arrow=arrow())+
+  
+  #Label a point with negative agreement
+  annotate("text", x="CIN", y=-0.08, label="Negative Agreement",
+           color="steelblue")+
+  annotate("segment", x="DET" ,xend="LV", y=-0.08, yend=-0.08,
+           size=2, alpha=0.6,color="steelblue",
+           arrow=arrow())+
+  
   #Add appropriate labels
   labs(x="Team",
        y="Matthews Correlation Coefficient (MCC)",
        title="Matthews Correlation Coefficient by Team",
-       subtitle="Logistic Model (LASSO)",
+       subtitle="Logistic Model (LASSO) Run vs. Pass",
        caption="Data from: National Football League (2024)")+
   
   #Adjust plot elements for neatness
-  theme(axis.text.x=element_text(angle=45),
-        plot.title= element_text(hjust=0.5),
-        plot.subtitle = element_text(hjust = 0.5))
+  theme(plot.title= element_text(hjust=0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        
+        #Remove the x-axis labels to clean up the plot
+        axis.text.x=element_blank())
 
+#Display the plot
 corr_plot
-
 ```
 
 ## Data Cleaning
