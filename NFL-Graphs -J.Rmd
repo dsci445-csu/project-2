@@ -8,6 +8,9 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(nflplotR)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
 ```
 
 # Graphing
@@ -53,7 +56,7 @@ corr_plot <- plot_df %>%
   
   #Label the two points with the highest (best) MCC
   annotate("text", x="HOU", y=0.5, label="Best Agreement",
-           color="steelblue")+
+           color="steelblue", size=6)+
   annotate("segment", 
            x="DEN", xend="BUF",
            y=0.5, yend=0.53,
@@ -68,34 +71,46 @@ corr_plot <- plot_df %>%
   #Label a point where MCC is approximately 0
   #i.e. teams where the model was as good as randomly guessing
   annotate("text", x="CIN", y=0.08, label="Random Guessing",
-           color="steelblue")+
+           color="steelblue", size= 6)+
   annotate("segment", x="DEN" ,xend="HOU", y=0.05, yend=0,
            size=2, alpha=0.6,color="steelblue",
            arrow=arrow())+
   
   #Label a point with negative agreement
   annotate("text", x="CIN", y=-0.08, label="Negative Agreement",
-           color="steelblue")+
+           color="steelblue", size=6)+
   annotate("segment", x="DET" ,xend="LV", y=-0.08, yend=-0.08,
            size=2, alpha=0.6,color="steelblue",
            arrow=arrow())+
   
+  #Change the y-axis limits to be consistent with the other models MCC
+  scale_y_continuous(limits=c(-0.3, 0.8))+
+  
   #Add appropriate labels
   labs(x="Team",
-       y="Matthews Correlation Coefficient (MCC)",
-       title="Matthews Correlation Coefficient by Team",
-       subtitle="Logistic Model (LASSO) Run vs. Pass",
-       caption="Data from: National Football League (2024)")+
+       y="Matthew Correlation Coefficient (MCC)",
+       title="Prediction on NFL Offenses- Run or Pass",
+       subtitle="MCC of Logistic Regression (LASSO) ",
+       caption="Data from: NFL Big Data Bowl (2025)")+
+  
+  theme_bw()+
   
   #Adjust plot elements for neatness
-  theme(plot.title= element_text(hjust=0.5),
-        plot.subtitle = element_text(hjust = 0.5),
+  theme(plot.title= element_text(hjust=0.5, size=20),
+        plot.subtitle = element_text(hjust = 0.5, size=14),
         
         #Remove the x-axis labels to clean up the plot
-        axis.text.x=element_blank())
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y= element_text(size=14),
+        axis.title.x= element_text(size=14))
 
 #Display the plot
 corr_plot
+
+#Save the plot and put it into the graphs folder
+ggsave("graphs/MCC_Logistic.png", plot=corr_plot,
+       width=12, height=7)
 ```
 
 ## Data Cleaning
@@ -137,10 +152,9 @@ for(i in c(1:32)){
 ## Sensitivity vs. Specificity
 
 ```{r}
-
 #Create a plot of specificity vs. sensitivity
 sens_vs_spec_plot <-log_data %>%
-  ggplot(aes(x = sens, y = spec)) +
+  ggplot(aes(x = spec, y = sens)) +
   
   #Add the team logos for clarity
   geom_nfl_logos(aes(team_abbr = team,
@@ -148,21 +162,32 @@ sens_vs_spec_plot <-log_data %>%
                      height=0.1))+
   
   #Add appropriate labels
-  labs(x="Sensitivity (True Positive Rate)",
-       y="Specificity (True Negative Rate)",
-       title="Specificity vs. Sensitivity by Team",
-       subtitle="Logistic Model (LASSO)",
+  labs(x="Run Prediction % (Specificity)",
+       y="Pass Prediction % (Sensitivity)",
+       title="Sensitivity vs. Specificity by Team",
+       subtitle="Logistic Model (LASSO) Run vs. Pass",
        
        #Cite the data source
        caption="Data from :National Football League (2024)")+
+  theme_bw()+
   
   #Justify plot elements for neatness
-  theme(plot.title= element_text(hjust=0.5),
-        plot.subtitle = element_text(hjust=0.5))
+  theme(plot.title= element_text(hjust=0.5, size=20),
+        plot.subtitle = element_text(hjust=0.5, size=14),
+        axis.title.x= element_text(size=14),
+        axis.title.y= element_text(size=14)
+        )
 
 #Display the plot
 sens_vs_spec_plot
+
+#Save the plot with a width=12, height =7
+ggsave("graphs/Sens_vs_spec_Logistic.png", plot=sens_vs_spec_plot,
+       width=12, height=7)
 ```
+
+
+
 
 
 
