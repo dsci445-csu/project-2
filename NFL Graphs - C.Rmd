@@ -128,15 +128,19 @@ spec_sens_svm <- svm_data %>%
   # draw the red dashed mean lines for the data
   nflplotR::geom_mean_lines(aes(x0 = spec , y0 = sens)) +
   geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
-  labs(title = "SVM Classifier Prediction on NFL Offenses - Run or Pass",
-       subtitle = "2022 Regular Season Through Week 9",
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "Sensitivity and Specificity of SVM Classifier",
        y = "Pass Prediction % (Sensitivity)",
        x = "Run Prediction % (Specificity)",
-       caption = "data from NFL Big Data Bowl") +
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9") +
   theme_minimal() +
   theme(
     # this just makes the background flat white
-    plot.background = ggplot2::element_rect(fill = "#F0F0F0")
+    plot.background = ggplot2::element_rect(fill = "#F0F0F0"),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.subtitle = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
   )
 spec_sens_svm
 ```
