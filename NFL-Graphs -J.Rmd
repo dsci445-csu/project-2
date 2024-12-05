@@ -168,8 +168,8 @@ sens_vs_spec_plot <-log_data %>%
   #Add appropriate labels
   labs(x="Run Prediction % (Specificity)",
        y="Pass Prediction % (Sensitivity)",
-       title="Sensitivity vs. Specificity by Team",
-       subtitle="Logistic Model (LASSO) Run vs. Pass",
+       subtitle="Sensitivity and Specificity for Logistic Regression",
+       title="Prediction on NFL Offenses-Run or Pass",
        
        #Cite the data source
        caption="Data from :National Football League (2024)")+
