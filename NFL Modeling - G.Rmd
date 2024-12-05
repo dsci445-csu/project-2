@@ -956,7 +956,7 @@ ggplot(AFC, aes(x = team_num, y = n_play, fill = type)) +
     axis.text.x = nflplotR::element_nfl_logo(size = 1)
   )
 ```
-
+Run and Pass Accuracy graph with annotations
 ```{r}
 #run/pass accuracy
 ggplot(data = NFL_rf_results, aes(x = full_ru_acc, y = full_pa_acc)) +
