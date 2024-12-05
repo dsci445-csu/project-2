@@ -99,7 +99,7 @@ corr_plot <- plot_df %>%
   theme(plot.title= element_text(hjust=0.5, size=20),
         plot.subtitle = element_text(hjust = 0.5, size=14),
         
-        #Remove the x-axis labels to clean up the plot
+        #Remove the x-axis labels and ticks to clean up the plot
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         axis.title.y= element_text(size=14),
@@ -134,7 +134,7 @@ for(i in c(1:32)){
   #Extract the current team
   team<- log_data$team[i]
   
-  logd_data$pass_1[i] <- log_model_info$conf_mat[[match(team,log_model_info$nfl_team)]]$table[1,1]
+  log_data$pass_1[i] <- log_model_info$conf_mat[[match(team,log_model_info$nfl_team)]]$table[1,1]
   log_data$pass_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,1]
   log_data$run_1[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,2]
   log_data$run_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[1,2]
@@ -155,6 +155,10 @@ for(i in c(1:32)){
 #Create a plot of specificity vs. sensitivity
 sens_vs_spec_plot <-log_data %>%
   ggplot(aes(x = spec, y = sens)) +
+  # draw the background lines. sequence for intercept will need changing
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = spec , y0 = sens)) +
   
   #Add the team logos for clarity
   geom_nfl_logos(aes(team_abbr = team,

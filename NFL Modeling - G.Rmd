@@ -16,6 +16,7 @@ library(tidyverse)
 library(pROC)
 library(nflplotR)
 library(nflreadr)
+library(dplyr)
 ```
 
 Data
@@ -858,71 +859,140 @@ for (team in teams) {
 
 NFL_rf_results <- NFL_rf_results %>% 
   mutate(run_prop = full_n_run/(full_n_run + full_n_pass),
-         pass_prop = full_n_pass/(full_n_pass + full_n_run))
+         pass_prop = full_n_pass/(full_n_pass + full_n_run),
+         tot_plays = full_n_pass + full_n_run)
 ```
+
+
+
+####################################################
+
+Sens/Spec graph
+PPV/NPV graph
+MCC
+
 
 Team names/abbs
 ```{r}
-team_abbr <- nflreadr::load_teams() %>% select(team_abbr) %>% pull()
+team_abbr <- nflreadr::load_teams(current = TRUE) %>% 
+             select(team_abbr, team_conf, team_color, team_color2, team_color3, team_color4) #%>% pull()
 
 setdiff(team_abbr, NFL_rf_results$team)
 
 #Everything matches
+nflreadr::load_teams()
 ```
 
-
 Graphs:
+
+Prop graphs
 ```{r}
 #Prop run vs pass
 
 colors_df <- 0
 
 NFL_long <- NFL_rf_results %>%
-  select(team, pass_prop, run_prop) %>% 
+  select(team, full_n_run, full_n_pass) %>% 
   pivot_longer(
-    cols = c(pass_prop, run_prop),
+    cols = c(full_n_run, full_n_pass),
     names_to = "type",
-    values_to = "prop"
+    values_to = "n_play"
+  ) %>% left_join(team_abbr, by = c("team" = "team_abbr"))
+
+
+
+
+###
+NFC <- NFL_long %>% filter(team_conf == "NFC")  %>%    
+    group_by(team) %>%  # Group by team first
+  mutate(team_num = cur_group_id() * 2) %>%  # Create team numbers
+  ungroup()
+
+
+ggplot(NFC, aes(x = team_num, y = n_play, fill = type)) +
+  geom_bar(stat = "identity", 
+           position = position_dodge(width = 1.5),  # This puts bars side by side
+           alpha = 0.8,
+           color = "black") +
+  scale_fill_manual(values = c("full_n_run" = "red", "full_n_pass" = "lightblue"),
+                   labels = c("Run", "Pass")) +
+  scale_x_continuous(breaks = NFC$team_num,
+                    labels = NFC$team) +
+  theme_bw() +
+  theme(
+    plot.title = ggplot2::element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.background = ggplot2::element_rect(fill = "#F0F0F0"),
+    axis.title.x = ggplot2::element_blank(),
+    axis.text.x = nflplotR::element_nfl_logo(size = 1)
+  ) +
+  labs(title = "Distribution of Run and Pass Plays for NFC Teams",
+       ylab = "# of Plays")
+
+
+
+
+###
+AFC <- NFL_long %>% filter(team_conf == "AFC")  %>%    
+    group_by(team) %>%  # Group by team first
+  mutate(team_num = cur_group_id() * 2) %>%  # Create team numbers
+  ungroup()
+
+
+ggplot(AFC, aes(x = team_num, y = n_play, fill = type)) +
+  geom_bar(stat = "identity", 
+           position = position_dodge(width = 1.5),  # This puts bars side by side
+           alpha = 0.8,
+           color = "black") +
+  scale_fill_manual(values = c("full_n_pass" = "lightblue", "full_n_run" = "red"),
+                   labels = c("Pass", "Run")) +
+  scale_x_continuous(breaks = AFC$team_num,
+                    labels = AFC$team) +
+  theme(
+    plot.title = ggplot2::element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.background = ggplot2::element_rect(fill = "#F0F0F0"),
+    axis.title.x = ggplot2::element_blank(),
+    axis.text.x = nflplotR::element_nfl_logo(size = 1)
   )
-
-ggplot(NFL_long, aes(x = team, y = prop, fill = type)) +
-  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
-  scale_fill_manual(values = c("pass_prop" = "blue", "run_prop" = "red"),
-                   labels = c("Pass", "Run"))
-
-
-
-############ Claude Tests
-
-
-NFL_long %>%
-  ggplot(aes(x = team, y = prop, fill = type)) +
-  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
-  nflplotR::scale_fill_nfl() +
-  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05) +  # This replaces scale_x_nfl
-  scale_y_continuous(labels = scales::percent) +
-  theme_minimal() +
-  theme(axis.text.x = element_blank()) +  # Remove x-axis text since we have logos
-  labs(title = "Pass vs Run Play Distribution by Team",
-       y = "Proportion",
-       fill = "Play Type")
 ```
-
+Run and Pass Accuracy graph with annotations
 ```{r}
 #run/pass accuracy
 ggplot(data = NFL_rf_results, aes(x = full_ru_acc, y = full_pa_acc)) +
-  geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
-  geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
-  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
+  # geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
+  # geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = full_ru_acc , y0 = full_pa_acc)) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.075, height = 0.1, alpha = 0.8) +
   scale_x_continuous(limits = c(0.5,1)) + 
   scale_y_continuous(limits = c(0.5,1)) +
-  annotate("text", x = 0.95, y = 0.95, size = 3.5, label = "Above avg. run acc,
+  
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "Sensitivity and Specificity of RF Classifier",
+       y = "Pass Prediction (Sensitivity)" ,
+       x = "Run Prediction (Specificity)",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks 1-9") +
+  
+  theme_bw() +
+  theme(
+    # this just makes the background flat white
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.subtitle = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
+  ) +
+  
+  annotate("text", x = 0.95, y = 0.95, size = 3.3, label = "Above avg. run acc,
            Above avg. pass acc") +
-  annotate("text", x = 0.95, y = 0.55, size = 3.5, label = "Above average run acc,
+  annotate("text", x = 0.95, y = 0.55, size = 3.3, label = "Above average run acc,
            Below avg pass acc") +
-  annotate("text", x = 0.55, y = 0.55, size = 3.5, label = "Below average run acc,
+  annotate("text", x = 0.55, y = 0.55, size = 3.3, label = "Below average run acc,
            Below avg pass acc") +
-  annotate("text", x = 0.55, y = 0.95, size = 3.5, label = "Below average run acc,
+  annotate("text", x = 0.55, y = 0.95, size = 3.3, label = "Below average run acc,
            Above avg pass acc") +
   labs(title = "Model Performance Accuracy for NFL Teams by Run and Pass Plays",
        xlab = "Run Play Accuracy",
@@ -934,6 +1004,53 @@ ggplot(data = NFL_rf_results, aes(x = full_ru_acc, y = full_pa_acc)) +
 
 ```{r}
 #run/pass predictive value
+
+
+
+ggplot(data = NFL_rf_results, aes(x = full_ru_ppv, y = full_pa_npv)) +
+  # geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
+  # geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = full_ru_acc , y0 = full_pa_acc)) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.075, height = 0.1, alpha = 0.8) +
+  scale_x_continuous(limits = c(0.5,1)) + 
+  scale_y_continuous(limits = c(0.5,1)) +
+  
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "PPV and NPV of RF Classifier",
+       y = "Pass Confidence (PPV)" ,
+       x = "Run Confidence (NPV)",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks 1-9") +
+  
+  theme_bw() +
+  theme(
+    # this just makes the background flat white
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.subtitle = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
+  ) +
+  
+  annotate("text", x = 0.95, y = 0.95, size = 3.3, label = "Above avg. run conf,
+           Above avg. pass conf") +
+  annotate("text", x = 0.95, y = 0.55, size = 3.3, label = "Above average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.55, size = 3.3, label = "Below average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.95, size = 3.3, label = "Below average run conf,
+           Above avg pass conf") 
+
+
+
+
+
+
+
+
+#########################################################
 ggplot(data = NFL_rf_results, aes(x = full_ru_ppv, y = full_pa_npv)) +
   geom_hline(yintercept = mean(NFL_rf_results$full_pa_npv), alpha = 0.75) +
   geom_vline(xintercept = mean(NFL_rf_results$full_ru_ppv), alpha = 0.75) +
@@ -957,23 +1074,89 @@ ggplot(data = NFL_rf_results, aes(x = full_ru_ppv, y = full_pa_npv)) +
 ```{r}
 #MCC
 ggplot(data = NFL_rf_results, aes(x = team, y = full_MCC)) +
-  geom_hline(yintercept = 0, alpha = 0.75, color = "red") +
+  geom_hline(yintercept = 0, color = "red") +
   nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
   scale_y_continuous(limits = c(-0.3,0.8)) +
-  theme_bw() +
-  theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.ticks.x = element_blank()) +
-  labs(title = "Model Prediction Confidence for NFL Teams by Run and Pass Plays",
-       xlab = "Run Play Confidence",
-       ylab = "Pass Play Confidence")
+  theme_bw() + 
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 20),
+        plot.subtitle = element_text(hjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14)) +
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "MCC of RF Classifier",
+       y = "Matthews Correlation Coefficient (MCC)",
+       x = "",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9")
+
+
+
+
+
+###
+mcc_svm <- svm_data %>%
+  ggplot(aes(y = mcc, x = team)) +
+  geom_nfl_logos(aes(team_abbr = team, width = 0.075 * s, height = 0.1 * s)) +
+  geom_hline(yintercept = 0, color = "red") + 
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "MCC of SVM Classifier",
+       y = "Matthews Correlation Coefficient (MCC)",
+       x = "",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9") +
+  scale_y_continuous(limits = c(-0.3, 0.8)) +
+  theme_bw() + 
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 20),
+        plot.subtitle = element_text(hjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14))
 ```
 ```{r}
 #Variable importance
+team_results$CLE$models$full$model %>% varImp %>% plot()
+
+team_results$PHI$models$full$model %>% varImp %>% plot()
 ```
+```{r}
+import <- team_results$CLE$models$full$model %>% varImp
+
+ggplot(importance, aes(x = reorder(rownames(import$importance), import$importance$Overall),
+                      y = import$importance$Overall)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Variable Importance Plot",
+    x = "Predictors",
+    y = "Importance"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+```
+
+
 
 ```{r}
 #Wins and MCC?
+win_losses <- win_losses %>% mutate(win_p = wins/(wins + losses + tie))
+NFL_rf_results <- NFL_rf_results %>% left_join(win_losses, by = c("team")) %>% select(team, full_MCC, win_p)
+write.csv(NFL_rf_results, "NFL_rf_results.csv", row.names = FALSE)
+
+### Top 5
+NFL_rf_results %>% select(team, full_MCC, win_p) %>% 
+  arrange(desc(full_MCC)) %>% head(7) %>% 
+  kableExtra::kable(digits = 3)
+
+
+### Bottom 5
+NFL_rf_results %>% select(team, full_MCC, win_p) %>% 
+  arrange((full_MCC)) %>% head(7) %>% 
+  kableExtra::kable(digits = 3)
 ```
 
 
