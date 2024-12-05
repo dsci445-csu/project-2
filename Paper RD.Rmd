@@ -1,0 +1,13 @@
+---
+title: "To Run or Not to Run"
+subtitle: "Using Pre-Snap Behavior to Predict Play Types in the NFL"
+author: "Justin C. Eldridge, Chandler Grote, Gabe Macklem"
+date: "2024-12-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 
