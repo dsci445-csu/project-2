@@ -82,7 +82,7 @@ knitr::include_graphics("graphs/Images for paper/event_frequency_EDA.png")
 ```
 \newpage
 
-  We were also interested to know if there would be any imbalance in our data (i.e. differing numbers of pass and run plays). To determine this we created indicator variables that classified any play with a dropback type of DESIGNED_RUN, and QB_SNEAK as a run play and any play with a dropback type of TRADITIONAL, SCRAMBLE, or some form of ROLLOUT as pass plays. We then plotted the frequency of each type to visualize any imbalance.
+  We were also interested to know if there would be any imbalance in our data (i.e. differing numbers of pass and run plays). To determine this we created indicator variables that classified any play with a dropback type of DESIGNED_RUN, and QB_SNEAK as a run play and any plays with a dropback type of TRADITIONAL, SCRAMBLE, or some form of ROLLOUT as pass plays. We then plotted the frequency of each type to visualize any imbalance.
   
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
@@ -203,6 +203,20 @@ knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 
 
 ## 10. Model Comparison:
+
+```{r, echo=FALSE}
+# Load the images into two plots
+AFC_table <- grid::rasterGrob(png::readPNG("graphs/Images for paper/AFC Table - Full.png"),
+                             interpolate = TRUE)
+NFC_table <- grid::rasterGrob(png::readPNG("graphs/Images for paper/NFC Table - Full.png"),
+                             interpolate = TRUE)
+
+# Combine the two images side by side
+grid.arrange(
+  gridExtra::arrangeGrob(AFC_table, NFC_table, ncol = 2),
+  ncol = 1
+)
+```
 
 
 ## 11. Conclusion:
