@@ -198,6 +198,18 @@ knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 
 ## 8. Results- Linear SVM:
 
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/MCC for SVM.png")
+```
+
+SVM performed well in terms of classification using the MCC. In the MCC plot for each team we see a band around 0.3 to 0.7 that each team lives in. Some are higher than others but all of them are above 0 indicating the SVM model performed quite well at predicting run or pass. 
+
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/SVM Specificity Sensitivity Graph - BW Theme.png")
+```
+
+When we look at the breakdown between run and pass predictions in the Sensitivity vs Specificity plot, we can see a similar level of predictability for each team. As mentioned each team has a different proportion of run and pass plays, and this will influence the predictability. However, there is a line to the bottom left of the plot that no team falls below in. Almost a predictability minimum for the SVM model indicating a high level of performance, even for the teams lower in performance. 
+
 
 ## 9. Results- Random Forest:
 

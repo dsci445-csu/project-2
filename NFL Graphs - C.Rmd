@@ -195,6 +195,15 @@ ggsave("graphs/SVM Specificity Sensitivity Graph - BW Theme.png", spec_sens_svm,
 ```
 
 
+```{r graph-save, eval=F, include=F}
+graph_width <- 6.5
+graph_height <- 4
+ggsave("graphs/Images for paper/MCC for SVM.png", mcc_svm, width = graph_width, height = graph_height)
+
+ggsave("graphs/Images for paper/SVM Specificity Sensitivity Graph - BW Theme.png", spec_sens_svm, width = graph_width, height = graph_height)
+```
+
+
 ```{r other-data-load, include=F}
 #rf_model_info <- readRDS("NFL_rf_models.rds")
 rf_data <- read.csv("NFL_rf_results.csv")
