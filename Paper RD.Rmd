@@ -204,6 +204,8 @@ knitr::include_graphics("graphs/Images for paper/MCC for SVM.png")
 
 SVM performed well in terms of classification using the MCC. In the MCC plot for each team we see a band around 0.3 to 0.7 that each team lives in. Some are higher than others but all of them are above 0 indicating the SVM model performed quite well at predicting run or pass. 
 
+\newpage
+
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/SVM Specificity Sensitivity Graph - BW Theme.png")
 ```
@@ -229,6 +231,11 @@ grid.arrange(
   ncol = 1
 )
 ```
+
+The above tables show the MCC values associated with each of our models by team. Here the models with the highest (best) MCC scores are colored in green while the lowest (worst) are colored in red. We can see that the logistic regression model performed poorly compared to the Random Forest and SVM with consistently lower MCC scores. The logistic model had the highest MCC score only once for the Baltimore Ravens team.
+
+The performance of the random forest and SVM models were much more comparable with each having similar numbers of optimal MCC values. The SVM model was the optimal model for 16 of the 32 teams with most scores between 0.3 and 0.6. The random forest model was the optimal model for 15 of the 32 teams with most scores between 0.3 and 0.7. These findings suggest that the random forest and SVM models are equally likely to be the best choice, while the logistic regression model does not measure up.
+
 
 
 ## 11. Conclusion:
