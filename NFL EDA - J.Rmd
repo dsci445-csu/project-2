@@ -187,22 +187,46 @@ calculate yard to endzone because data fails to account for the 10 yards in the 
 # Filter out NA values from the event column
 wk1_events <- track1_df[!is.na(track1_df$event), ]
 
+#Create a vector of axis labels that are more nicely formatted
+events <- c("timeout_away"= "Time Out",
+            "snap_direct"="Direct Snap",
+            "shift"="Shift",
+            "man_in_motion"="Man in Motion",
+            "line_set"="Line Set",
+            "huddle_start_offense"="Huddle Begin",
+            "huddle_break_offense"="Huddle Break",
+            "ball_snap"="Ball Snap")
+
 # Create a bar plot of events (use geom_bar for categorical data)
 event_hist <- wk1_events %>%
   ggplot(aes(x = event)) +
   geom_bar(fill = "steelblue", color = "black") +
   theme_minimal() +
   labs(
-    title = "Frequency of Events",
+    title = "Frequency of Events Before and During the Snap (Offense)",
+    subtitle="Week 1 NFL Tracking Data (2022)",
+    caption="Data from:NFL Big Data Bowl (2025) ",
     x = "Event",
     y = "Count"
   )+
-  #Rotate the axis labels to make them more readable
-  theme(axis.text.x= element_text(angle=45))
+  
+  theme_bw()+
+  
+  #Add the better formatted labels to the plot
+  scale_x_discrete(labels=events)+
+  
+  #Flip the axes so the labels are easier to read
+  coord_flip()+
+  
+  theme(plot.title=element_text(hjust=0.5),
+        plot.subtitle = element_text(hjust=0.5))
 
 # Display the plot
 event_hist
 
+#Save the plot
+ggsave("graphs/Images for paper/event_frequency_EDA.png", plot=event_hist,
+       width=6.5, height=4)
 
 #Shift is when the whole offense changes formation
 #Man in motion is when one man moves across but the formation remains the same
@@ -337,16 +361,25 @@ run_pass_plot <- filtered_data %>%
   ggplot(aes(x = factor(run_pass_ind), fill = factor(run_pass_ind))) +
   geom_bar() +
   scale_x_discrete(labels = c("0" = "Pass", "1" = "Run")) +
+  theme_bw()+
   labs(
     x = "Play Type",
     y = "Frequency",
     title = "Frequency of Run and Pass Plays",
+    subtitle= "2022 NFL Season (Week 1-9)",
+    caption="Data from: NFL Big Data Bowl (2025)",
     fill = "Play Type"
   ) +
-  theme_minimal()
+  theme(legend.position = "none",
+        plot.title=element_text(hjust=0.5),
+        plot.subtitle= element_text(hjust=0.5))
 
 # Display the plot
 run_pass_plot
+
+#Save the plot
+ggsave("graphs/Images for paper/play_type_frequency_EDA.png",
+       plot=run_pass_plot, width=6.5, height=4)
 ```
 That frequency seems really suspsicious. Try doing the same thing for all dropback types and see what their frequencies are
 
