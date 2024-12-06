@@ -17,7 +17,10 @@ library(kknn)
 library(caret)
 library(kernlab)
 library(nflplotR)
+library(nflfastR)
 library(kableExtra)
+library(webshot2)
+library(magick)
 ```
 
 
@@ -194,7 +197,7 @@ ggsave("graphs/SVM Specificity Sensitivity Graph - BW Theme.png", spec_sens_svm,
 
 ```{r other-data-load, include=F}
 #rf_model_info <- readRDS("NFL_rf_models.rds")
-
+rf_data <- read.csv("NFL_rf_results.csv")
 log_model_info <- readRDS("Logistic Model Info by Team.rds")
 ```
 
@@ -243,24 +246,73 @@ afc_table <- svm_data %>% rename(svm_mcc = 'mcc') %>% filter(conf == "AFC") %>%
   select(team, wins, svm_mcc) %>%
   left_join(log_data %>% select(team, log_mcc),
             by = "team") %>%
-  select(team, wins, log_mcc, svm_mcc) %>%
-  arrange(log_mcc) 
+  left_join(rf_data, by = "team") %>%
+  select(team, win_p, log_mcc, svm_mcc, full_MCC) %>%
+  mutate(win_p = round(win_p * 100, 2)) %>%
+  arrange(desc(win_p)) 
 
 nfc_table <- svm_data %>% rename(svm_mcc = 'mcc') %>% filter(conf == "NFC") %>%
   select(team, wins, svm_mcc) %>%
   left_join(log_data %>% select(team, log_mcc),
             by = "team") %>%
-  select(team, wins, log_mcc, svm_mcc) %>%
-  arrange(log_mcc) 
+  left_join(rf_data, by = "team") %>%
+  select(team, win_p, log_mcc, svm_mcc, full_MCC) %>%
+  mutate(win_p = round(win_p * 100, 2)) %>%
+  arrange(desc(win_p)) 
+
+nfc_table <- nfc_table %>% rowwise() %>% 
+  mutate(best = max(c(log_mcc, svm_mcc, full_MCC)),
+         worst = min(c(log_mcc, svm_mcc, full_MCC)))
 
 nfc_table %>% rename("Team" = team,
-                     "Wins" = wins,
+                     "Win %" = win_p,
                      "Logistic MCC" = log_mcc,
-                     "SVM MCC" = svm_mcc) %>%
-  kbl(align = rep('c', 16)) %>%
-  kable_styling(font_size = 15, full_width = F)
-  
+                     "SVM MCC" = svm_mcc,
+                     "RF MCC" = full_MCC) %>%
+  select(-best, -worst) %>%
+  kbl(align = rep('c', 16), format = "latex", booktabs = T) %>%
+  kable_styling(font_size = 15, full_width = F) %>%
+  column_spec(1, image = spec_image(teams_colors_logos$team_logo_espn[match(nfc_table$team, teams_colors_logos$team_abbr)], 75, 100)) %>%
+  column_spec(2, bold = T) %>%
+  column_spec(3, bold = T, background = case_when(nfc_table$log_mcc == nfc_table$best ~ "lightgreen", 
+                                                  nfc_table$log_mcc == nfc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  column_spec(4, bold = T, background = case_when(nfc_table$svm_mcc == nfc_table$best ~ "lightgreen", 
+                                                  nfc_table$svm_mcc == nfc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  column_spec(5, bold = T, background = case_when(nfc_table$full_MCC == nfc_table$best ~ "lightgreen", 
+                                                  nfc_table$full_MCC == nfc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  as_image()
 
+  save_kable(file = "NFC_Table.png", self_contained = T)
+
+afc_table <- afc_table %>% rowwise() %>% 
+  mutate(best = max(c(log_mcc, svm_mcc, full_MCC)),
+         worst = min(c(log_mcc, svm_mcc, full_MCC)))
+
+afc_table %>% rename("Team" = team,
+                     "Win %" = win_p,
+                     "Logistic MCC" = log_mcc,
+                     "SVM MCC" = svm_mcc,
+                     "RF MCC" = full_MCC) %>%
+  select(-best, -worst) %>%
+  kbl(align = rep('c', 16)) %>%
+  kable_styling(font_size = 15, full_width = F) %>%
+  column_spec(1, image = spec_image(teams_colors_logos$team_logo_espn[match(afc_table$team, teams_colors_logos$team_abbr)], 75, 100)) %>%
+  column_spec(2, bold = T) %>%
+  column_spec(3, bold = T, background = case_when(afc_table$log_mcc == afc_table$best ~ "lightgreen", 
+                                                  afc_table$log_mcc == afc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  column_spec(4, bold = T, background = case_when(afc_table$svm_mcc == afc_table$best ~ "lightgreen", 
+                                                  afc_table$svm_mcc == afc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  column_spec(5, bold = T, background = case_when(afc_table$full_MCC == afc_table$best ~ "lightgreen", 
+                                                  afc_table$full_MCC == afc_table$worst ~ "#ff8282",
+                                                  T ~ "white")) %>%
+  save_kable(file = "AFC_Table.html", self_contained = T)
+  
+view(teams_colors_logos)
 ```
 
 
