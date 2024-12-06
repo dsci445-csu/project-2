@@ -139,9 +139,6 @@ knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
 
 
 
-
-
-
 ## 5. Model Selection:
 
   We were interested in predicting the type of play the offense will execute. We had a large number of predictors and the predictor space was further increased by our addition of several indicator variables for player motion. We therefore selected models that are good for binary classification and those that can handle larger predictor spaces without taking an excessive amount of time to run. We additionally wanted to try a non-parametric approach for comparison. These considerations lead us to choose the following models.
@@ -153,6 +150,7 @@ knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
 **Linear Support Vector Machine (SVM):**
 
 <!-- I think you could summarize our reasoning for this one better Chandler -->
+For the SVM Model we knew that the binary classification power would work well for our research question. There was a fairly high predictor space that we just left as and see if it could tackle them all before reduction would be required. This did take a while in practice and the k-fold cross validation had to be reduced from 10 folds to just 5 folds. Even with this reduction in k-folds the model still took quite a while to complete the training for all 32 teams. However as discussed later the prediction power of this method was retained and produced quite favorable results.
 
 **Random Forest:**
 
@@ -160,10 +158,11 @@ knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
 
 **KNN:**
 
+KNN was a non-parametric approach to the research question we tried. KNN can prove quite powerful when there is little overlap in the response compared to the feature space, which was our hope. However that did not prove to be the case and we ended abandoning this model all together. Part of the problem for KNN is the number of observations compared to the dimensionality of the problem. Predicting run or pass is a complicated endeavor and NFL offenses only get around 60 plays a game. Even when attempting to run on all 8-9 games for a team, that is only 540 games, or so, per team to train on. The model would run for some but failed to execute the prediction step for approximately half of the teams. We tried to make adjustments to the model to get predictions for every team but it was apparent KNN was not going to be a tool that we could use to describe the outcome effectively and so we decided to move on from this approach all together.
 
 ## 6. Model Evaluation:
 
-  To evaluate our models performance we decided to employ Matthews Correlation Coefficient (MCC). MCC which can be understood as the correlation coefficient between predicted and actuall classifications can be expressed mathematically as follows:
+  To evaluate our models performance we decided to employ Matthews Correlation Coefficient (MCC). MCC which can be understood as the correlation coefficient between predicted and actual classifications can be expressed mathematically as follows:
   
 
 $$
@@ -186,16 +185,13 @@ $$
 ## 9. Results- Random Forest:
 
 
-## 10. Results- KNN:
+## 10. Model Comparison:
 
 
-## 11. Model Comparison:
+## 11. Conclusion:
 
 
-## 12. Conclusion:
-
-
-## 13. Citations:
+## 12. Citations:
 
 Michael Lopez, Thompson Bliss, Ally Blake, Paul Mooney, and Addison Howard. NFL Big Data Bowl 2025. https://kaggle.com/competitions/nfl-big-data-bowl-2025, 2024. Kaggle.
 
