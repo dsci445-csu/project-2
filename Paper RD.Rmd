@@ -53,22 +53,22 @@ grid.arrange(
   
 ## 1. Overview/ Introduction:
 
-  For our project we decided to participate in the National Football League's Big Data Bowl competition for 2025. The purpose of this competition is to use player and team behavior right before the play begins to gain insight into the resulting play. We realized that the most important information a defense can have is whether the offense intends to execute a run or pass play. Knowing this information would allow the defensive team to move their players around to optimize their chances of getting a tackle or otherwise disrupting the play. We therefore decided to develop statistical models that can predict what kind of play the offense will execute based on game characteristics, team characteristics, and player behavior before and during the snap which we will explore in greater detail later on. 
+For our project we decided to participate in the National Football League's Big Data Bowl competition for 2025. The purpose of this competition is to use player and team behavior right before the play begins to gain insight into the resulting play. We realized that the most important information a defense can have is whether the offense intends to execute a run or pass play. Knowing this information would allow the defensive team to move their players around to optimize their chances of getting a tackle or otherwise disrupting the play. We therefore decided to develop statistical models that can predict what kind of play the offense will execute based on game characteristics, team characteristics, and player behavior before and during the snap which we will explore in greater detail later on. 
   
   
 ## 2. Data Sets:
 
   The NFL provided several useful data sets for us to draw from for our analysis.
   
--games.csv: This set contains all of the game data for the first 9 weeks of the 2022 season.
+-**games.csv**: This set contains all of the game data for the first 9 weeks of the 2022 season.
 
--plays.csv: This set contains all of the play by play data.
+-**plays.csv**: This set contains all of the play by play data.
 
--players.csv: This set contains all of the individual performance data for NFL players.
+-**players.csv**: This set contains all of the individual performance data for NFL players.
 
--player_play.csv: This set contains all of the player level stats for each game and play.
+-**player_play.csv**: This set contains all of the player level stats for each game and play.
 
--tracking_week_[week].csv: This set contains all of the tracking data for players and the ball for each game and play in a given week.
+-**tracking_week_[week].csv**: This set contains all of the tracking data for players and the ball for each game and play in a given week.
 
 
 \newpage 
@@ -88,7 +88,7 @@ knitr::include_graphics("graphs/Images for paper/event_frequency_EDA.png")
 knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
 ```
 
-## 4. Variables and Data Cleaning":
+## 4. Variables and Data Cleaning:
 
   Using our background knowledge and drawing on our EDA we decided to include the following variables in our models.
   
@@ -192,6 +192,7 @@ knitr::include_graphics("graphs/Images for paper/MCC_log.png")
 ```{r}
 knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 ```
+  The above plot shows sensitivity (True Positive Rate) vs. specificity (True Negative rate) for each teams logistic regression model. The dotted red lines represent the mean sensitivity ($\approx 0.905$) and specificity ($\approx 0.23$) respectively. These means that the models were generally biased towards predicting passes, which is consistent with our earlier findings that pass plays are more common than run plays. The largest cluster of teams are located in the upper left quadrant where teams had above-average predictability for passing and below-average predictability for running. In the bottom left quadrant we there appears to be a lower bound on predictability for running. There appears to be much wider variation among teams with above average predictability for runs shown by the lesser amount of clustering on the right side of the graph. 
 
 
 
