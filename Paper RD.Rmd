@@ -204,6 +204,8 @@ knitr::include_graphics("graphs/Images for paper/MCC for SVM.png")
 
 SVM performed well in terms of classification using the MCC. In the MCC plot for each team we see a band around 0.3 to 0.7 that each team lives in. Some are higher than others but all of them are above 0 indicating the SVM model performed quite well at predicting run or pass. 
 
+\newpage
+
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/SVM Specificity Sensitivity Graph - BW Theme.png")
 ```
