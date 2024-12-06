@@ -178,6 +178,11 @@ $$
 
 ## 7. Results- Logistic Regression (LASSO):
 
+```{r echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/MCC_log.png")
+knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
+```
+
 
 ## 8. Results- Linear SVM:
 
