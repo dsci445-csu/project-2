@@ -1,0 +1,206 @@
+---
+title: "To Run or Not to Run"
+subtitle: "Using Pre-Snap Behavior to Predict Play Types in the NFL"
+author: "Justin C. Eldridge, Chandler Grote, Gabe Macklem"
+date: "2024-12-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, echo=FALSE,fig.height=4, fig.width=6.5}
+library(gridExtra)
+library(ggplot2)
+library(png)
+
+# Load the images into two plots
+csu_logo <- grid::rasterGrob(png::readPNG("graphs/Images for paper/csu-logo.png"),
+                             interpolate = TRUE)
+nfl_logo <- grid::rasterGrob(png::readPNG("graphs/Images for paper/nfl-logo.png"),
+                             interpolate = TRUE)
+
+# Combine the two images side by side
+grid.arrange(
+  gridExtra::arrangeGrob(csu_logo, nfl_logo, ncol = 2),
+  ncol = 1
+)
+```
+\newpage
+
+
+# Contents:
+
+  1. Overview/ Introduction
+  2. Description of Data Sets
+  3. Exploratory Data Analysis
+  4. Variables and Data Cleaning
+  5. Model Selection
+  6. Model Evaluation Metrics
+  7. Results- Logistic Regression
+  8. Results- Linear Support Vector Machine
+  9. Results- Random Forrest
+  10. Results- KNN
+  11. Model Comparison
+  12. Conclusion
+  13. Discussion and Future Research
+  14. Citations
+
+
+  
+## 1. Overview/ Introduction:
+
+  For our project we decided to participate in the National Football League's Big Data Bowl competition for 2025. The purpose of this competition is to use player and team behavior right before the play begins to gain insight into the resulting play. We realized that the most important information a defense can have is whether the offense intends to execute a run or pass play. Knowing this information would allow the defensive team to move their players around to optimize their chances of getting a tackle or otherwise disrupting the play. We therefore decided to develop statistical models that can predict what kind of play the offense will execute based on game characteristics, team characteristics, and player behavior before and during the snap which we will explore in greater detail later on. 
+  
+  
+## 2. Data Sets:
+
+  The NFL provided several useful data sets for us to draw from for our analysis.
+  
+-games.csv: This set contains all of the game data for the first 9 weeks of the 2022 season.
+
+-plays.csv: This set contains all of the play by play data.
+
+-players.csv: This set contains all of the individual performance data for NFL players.
+
+-player_play.csv: This set contains all of the player level stats for each game and play.
+
+-tracking_week_[week].csv: This set contains all of the tracking data for players and the ball for each game and play in a given week.
+
+
+\newpage 
+
+## 3. Exploratory Data Analysis:
+
+  Since we were interested to see if things like player motion before or during the snap could be useful in predicting the play type we decided to look at a week of tracking data which contains key pre-snap events like when the offensive line is set (line_set), when the ball is snapped (ball_snap), and whether or not a player was in motion before the snap (man_in_motion) and plot the frequency of these events.
+  
+```{r echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/event_frequency_EDA.png")
+```
+\newpage
+
+  We were also interested to know if there would be any imbalance in our data (i.e. differing numbers of pass and run plays). To determine this we created indicator variables that classified any play with a dropback type of DESIGNED_RUN, and QB_SNEAK as a run play and any play with a dropback type of TRADITIONAL, SCRAMBLE, or some form of ROLLOUT as pass plays. We then plotted the frequency of each type to visualize any imbalance.
+  
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
+```
+
+## 4. Variables and Data Cleaning":
+
+  Using our background knowledge and drawing on our EDA we decided to include the following variables in our models.
+  
+  
+  **_Game Characteristics:_**
+
+- **`game_id`**: Unique identifier for the game
+- **`play_id`**: Unique identifier for a specific play
+- **`possession_team`**: Identifies the offensive team
+- **`week`**: Identifies which week of the season the game was in
+- **`run_pass`**: Indicates if the play was a run or a pass (response variable)
+- **`down`**: Identifies which down the offensive team was on for a particular play
+- **`yards_to_go`**: The number of yards needed to get a first down
+- **`yards_to_endzone`**: The number of yards to the opponent's endzone
+- **`redzone`**: Indicates whether the offense is within 20 yards of the opponent's endzone
+- **`sec_in_half`**: The number of seconds remaining on the play clock in the current half
+- **`epa_lag`**: Serial correlation of expected points added
+
+\newpage
+
+**_Team Characteristics:_**
+
+- **`offense_formation`**: Categorical variable indicating what formation the offense uses
+- **`receiver_alignment`**: Enumerated as 0x0, 1x0, 1x1, 2x0, 2x1, 2x2, 3x0, 3x1, 3x2 (text)
+- **`curr_win_percentage`**: Win percentage for the current offensive team
+- **`form_change`**: Uses shifts to determine if the offense changed formation before the ball was snapped
+
+
+<!-- I'm not sure why the spacing for this last section isn't consistent with the first two -->
+<!-- come back later to fix -->
+**_Player Characteristics:_**
+
+- **`wr_motion`**: Indicates if a wide receiver moved after the line was set
+- **`te_motion`**: Indicates if a tight end moved after the line was set
+- **`rb_motion`**: Indicates if a running back moved after the line was set
+- **`wr_atsnap`**: Indicates if a wide receiver was in motion at the time of the snap
+- **`te_atsnap`**: Indicates if a tight end was in motion at the time of the snap
+- **`rb_atsnap`**: Indicates if a running back was in motion at the time of the snap
+
+<!-- Still need to add some stuff about data cleaning -->
+  
+
+
+
+
+
+
+
+
+
+
+
+
+## 5. Model Selection:
+
+  We were interested in predicting the type of play the offense will execute. We had a large number of predictors and the predictor space was further increased by our addition of several indicator variables for player motion. We therefore selected models that are good for binary classification and those that can handle larger predictor spaces without taking an excessive amount of time to run. We additionally wanted to try a non-parametric approach for comparison. These considerations lead us to choose the following models.
+  
+**Logistic Regression (LASSO):**
+
+  First we wanted to create a basic logistic regression model as "control" that we could compare our other more sophisticated models against. To accomplish this we used LASSO with 10-fold cross validation on the entire data set to perform variable selection. Once the optimal lambda value had been determined and the optimal LASSO model fit we look at the output to determine which of our variables to include in the logistic regression model. We then fit the logistic regression model on the entire data set in an attempt to identify any and all errors that would occurr later on when we tried to fit models for each team individually. Once this was complete we then fit a logistic regression model for each NFL team
+  
+**Linear Support Vector Machine (SVM):**
+
+<!-- I think you could summarize our reasoning for this one better Chandler -->
+
+**Random Forest:**
+
+<!-- Same thing here Gabe -->
+
+**KNN:**
+
+
+## 6. Model Evaluation:
+
+  To evaluate our models performance we decided to employ Matthews Correlation Coefficient (MCC). MCC which can be understood as the correlation coefficient between predicted and actuall classifications can be expressed mathematically as follows:
+  
+
+$$
+\text{MCC} = \frac{TP \times TN - FP \times FN}{\sqrt{(TP + FP)(TP + FN)(TN + FP)(TN + FN)}}
+$$
+  Here an MCC score of 1 indicates perfect agreement between predicted classes and actual classes, a score of -1 indicates complete disagreement between predicted and actual classes, and a score of 0 indicates that the predictions are no better than randomly guessing the class.
+  
+  We can see that the numerator rewards true positives and true negatives while penalizing false positives and false negatives. The deonominator ensures that MCC scores are normalized between -1 to 1. 
+  
+  We chose to utilize MCC for several reasons. First, MCC is good at handling imbalanced data, which would be useful considering that pass plays are meaningfully more frequent than run plays. Second, it is comprehensive, considering all elements of the confusion matrices. Finally, we chose MCC because unlike precision and accuracy, MCC is unbiased. 
+
+
+
+## 7. Results- Logistic Regression (LASSO):
+
+
+## 8. Results- Linear SVM:
+
+
+## 9. Results- Random Forest:
+
+
+## 10. Results- KNN:
+
+
+## 11. Model Comparison:
+
+
+## 12. Conclusion:
+
+
+## 13. Citations:
+
+Michael Lopez, Thompson Bliss, Ally Blake, Paul Mooney, and Addison Howard. NFL Big Data Bowl 2025. https://kaggle.com/competitions/nfl-big-data-bowl-2025, 2024. Kaggle.
+
+H. Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.
+Carl S (2024). nflplotR: NFL Logo Plots in 'ggplot2' and 'gt'. R package version 1.4.0.9001, https://github.com/nflverse/nflplotR, https://nflplotr.nflverse.com.
+
+DataScience-ProF. (2024, September 8). Understanding the Matthews correlation coefficient (MCC) in machine learning. Medium. https://medium.com/@TheDataScience-ProF/understanding-the-matthews-correlation-coefficient-mcc-in-machine-learning-26e8049f8572#:~:text=The%20MCC%20can%20be%20understood,between%20predictions%20and%20true%20outcomes 
+
