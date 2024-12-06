@@ -66,7 +66,7 @@ library(caret)
 
 -rb_atsnap: Indicates if a running back was in motion at the time of the snap.
 
-# Model 1: Logistic (Control)
+# LASSO Model
 
   Use LASSO to perform varaible selection and then fit a logistic regression model as a kind of control to compare our other models against.
 
@@ -140,7 +140,7 @@ lasso_ests |>
   # and view the graph in a new window to get a better idea. 
   theme(legend.position="none")
 ```
-```{r, data_split}
+```{r, data_split, warning=FALSE}
 
 #Create the training and testing sets of data
   #Use the first 6 weeks of data for training 
@@ -164,7 +164,7 @@ nfl_test <- nfl_lasso_df %>%
   filter(week==c(7,8,9))
 ```
 
-
+## LASSO Tuning
 
 ```{r}
 #Fit a lasso model and determine the optimum lambda for varaible selection
@@ -222,6 +222,8 @@ confusion_mat <- conf_mat(
 print(confusion_mat)
 ```
 
+## Logistic Model (Entire Data Set)
+
 ```{r}
 
 #Fit the logistic model on the entire data set using the varaibles from the 
@@ -275,6 +277,8 @@ nfl_test$predicted_run_pass <- as.factor(nfl_test$predicted_run_pass)
 confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 
 ```
+
+## Logistic Model (by Team)
 
 ```{r, warning=FALSE}
 
