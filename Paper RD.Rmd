@@ -188,6 +188,7 @@ knitr::include_graphics("graphs/Images for paper/MCC_log.png")
   <!-- Do we have some good explanation as to why the logistic model was so much wrose? -->
   
   Finally we can see that three of the models had negative MCC scores, namely the Miami Dolphins, The New York Giants, and the Seattle Seahawks. These MCC scores indicate that the models performed even worse than random guessing. 
+  
 ```{r}
 knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 ```

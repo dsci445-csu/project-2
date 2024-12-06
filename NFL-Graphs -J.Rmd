@@ -56,7 +56,7 @@ corr_plot <- plot_df %>%
   
   #Label the two points with the highest (best) MCC
   annotate("text", x="HOU", y=0.5, label="Best Agreement",
-           color="steelblue", size=6)+
+           color="steelblue", size=3)+
   annotate("segment", 
            x="DEN", xend="BUF",
            y=0.5, yend=0.53,
@@ -71,14 +71,14 @@ corr_plot <- plot_df %>%
   #Label a point where MCC is approximately 0
   #i.e. teams where the model was as good as randomly guessing
   annotate("text", x="CIN", y=0.08, label="Random Guessing",
-           color="steelblue", size= 6)+
+           color="steelblue", size= 3)+
   annotate("segment", x="DEN" ,xend="HOU", y=0.05, yend=0,
            size=2, alpha=0.6,color="steelblue",
            arrow=arrow())+
   
   #Label a point with negative agreement
   annotate("text", x="CIN", y=-0.08, label="Negative Agreement",
-           color="steelblue", size=6)+
+           color="steelblue", size=3)+
   annotate("segment", x="DET" ,xend="LV", y=-0.08, yend=-0.08,
            size=2, alpha=0.6,color="steelblue",
            arrow=arrow())+
@@ -111,6 +111,10 @@ corr_plot
 #Save the plot and put it into the graphs folder
 ggsave("graphs/MCC_Logistic.png", plot=corr_plot,
        width=12, height=7)
+
+#Save the plot in a different size for the paper
+ggsave("graphs/Images for paper/MCC_log.png", plot= corr_plot,
+       height=4, width=6.5)
 ```
 
 ## Data Cleaning
@@ -188,6 +192,10 @@ sens_vs_spec_plot
 #Save the plot with a width=12, height =7
 ggsave("graphs/Sens_vs_spec_Logistic.png", plot=sens_vs_spec_plot,
        width=12, height=7)
+
+#Save the plot in a different size for the paper
+ggsave("graphs/Images for paper/Sens_vs_Spec_Log.png", plot=sens_vs_spec_plot,
+       height=4, width=6.5)
 ```
 
 
