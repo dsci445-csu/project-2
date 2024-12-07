@@ -324,6 +324,7 @@ The above tables show the MCC values associated with each of our models by team.
 
 The performance of the random forest and SVM models were much more comparable with each having similar numbers of optimal MCC values. The SVM model was the optimal model for 16 of the 32 teams with most scores between 0.3 and 0.6. The random forest model was the optimal model for 15 of the 32 teams with most scores between 0.3 and 0.7. These findings suggest that the random forest and SVM models are equally likely to be the best choice, while the logistic regression model does not measure up.
 
+If we were to compare just the random forest to the SVM we can look at the distribution of MCC values. The random forest had an average value of 0.473 and a standard deviation of 0.105. The SVM had an average value of 0.465 and a standard deviation of 0.112. Given these results, it appears the random forest is performing better and is more stable across teams.
 
 
 ## 11. Conclusion:
@@ -331,7 +332,7 @@ The performance of the random forest and SVM models were much more comparable wi
 
 ## 12. Discussion and Future Research
 
-Currently, the predictions obtained from our models are so far good. However, we believe there are tings that could be improved upon and explored. Though many of the pre-play variables from the offenses perspective have been covered, we neglected to consider the quality of our opponent. That being said, there may be some opponent defensive performance metrics that may be included in the model. For example, if we included the ability of the opponents run and pass defense, that may give signal to if the offense is better off running versus passing.
+Currently, the predictions obtained from our models are solid. However, we believe there are things that could be improved upon and explored. Though many of the pre-play variables from the offenses perspective have been covered, we neglected to consider the quality of our opponent. That being said, there may be some opponent defensive performance metrics that may be included in the model. For example, if we included the ability of the opponents run and pass defense, that may give signal to if the offense is better off running versus passing.
 
 Other than including more predictors, we may also try different modeling techniques. Specifically, we have considered evaluating different kernels in our SVM models. Currently, we only evaluated the linear kernel which has shown to be successful. However, the response we are trying to predict may perform better with a more flexible decision boundary such as the radial or polynomial kernel.
 
