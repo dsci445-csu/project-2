@@ -194,10 +194,18 @@ knitr::include_graphics("graphs/Images for paper/MCC_log.png")
 ```
 
   
+
+
+![](graphs/Sens_vs_spec_Logistic_Original.png){width="100%"}
+
+  The above plot shows sensitivity (True Positive Rate) vs. specificity (True Negative rate) for each teams logistic regression model. The dotted red lines represent the mean sensitivity ($\approx 0.905$) and specificity ($\approx 0.23$) respectively. These means that the models were generally biased towards predicting passes, which is consistent with our earlier findings that pass plays are more common than run plays. The largest cluster of teams are located in the upper left quadrant where teams had above-average predictability for passing and below-average predictability for running. In the bottom left quadrant we there appears to be a lower bound on predictability for running. There appears to be much wider variation among teams with above average predictability for runs shown by the lesser amount of clustering on the right side of the graph. 
+  
+  As mentioned above when trying to put all of the code for the logistic model in a single file numeric discrepancies arose that greatly alter the resulting plots. I have not been able to determine the cause but I will again include the updated graph for comparison.
+  
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 ```
-  The above plot shows sensitivity (True Positive Rate) vs. specificity (True Negative rate) for each teams logistic regression model. The dotted red lines represent the mean sensitivity ($\approx 0.905$) and specificity ($\approx 0.23$) respectively. These means that the models were generally biased towards predicting passes, which is consistent with our earlier findings that pass plays are more common than run plays. The largest cluster of teams are located in the upper left quadrant where teams had above-average predictability for passing and below-average predictability for running. In the bottom left quadrant we there appears to be a lower bound on predictability for running. There appears to be much wider variation among teams with above average predictability for runs shown by the lesser amount of clustering on the right side of the graph. 
+  
 
 
 

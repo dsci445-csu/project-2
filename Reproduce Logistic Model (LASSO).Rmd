@@ -26,10 +26,12 @@ This document contains all the code necessary to reproduce the logistic models a
 ## Contents:
   1. Variables
   2. Lasso Model
-  3. Tuning Lasso
-  4. Logistic Regression Model (Entire Data Set)
-  5. Logistic Regression Models by Team
-  6. Visualizations
+  3. Data Split
+  4. Tuning Lasso
+  5. Logistic Regression Model (Entire Data Set)
+  6. Logistic Regression Models by Team
+  7. Data Cleaning
+  8. Visualizations
   
 
 ## 1. Variables:
@@ -145,7 +147,32 @@ lasso_ests |>
   theme(legend.position="none")
 ```
 
-## 3. Tuning Lasso:
+## 3. Data Split:
+```{r, data_split, warning=FALSE}
+
+#Create the training and testing sets of data
+  #Use the first 6 weeks of data for training 
+  #Use the last 3 weeks of dat for testing
+
+#Grab the data
+nfl_lasso_df <- nfl_df
+
+#Make sure that run pass is a factor not a character type
+nfl_lasso_df$run_pass <- as.factor(nfl_lasso_df$run_pass)
+
+#Encode the boolean columns as numeric
+nfl_lasso_df[bool_cols] <- lapply(nfl_lasso_df[bool_cols], as.numeric)
+
+#Create the training set
+nfl_train <- nfl_lasso_df %>%
+  filter(week==c(1,2,3,4,5,6))
+
+#Create the test set
+nfl_test <- nfl_lasso_df %>%
+  filter(week==c(7,8,9))
+```
+
+## 4. Tuning Lasso:
 
 ```{r}
 #Fit a lasso model and determine the optimum lambda for varaible selection
@@ -203,7 +230,7 @@ confusion_mat <- conf_mat(
 print(confusion_mat)
 ```
 
-## 4. Logistic Regression Model (Entire Data Set):
+## 5. Logistic Regression Model (Entire Data Set):
 
 ```{r}
 
@@ -258,7 +285,7 @@ nfl_test$predicted_run_pass <- as.factor(nfl_test$predicted_run_pass)
 confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
 ```
 
-## 5. Logistic Regression Models by Team:
+## 6. Logistic Regression Models by Team:
 
 ```{r, warning=FALSE}
 
@@ -371,10 +398,8 @@ print("Complete")
 #Save the data
 saveRDS(model_info, "Logistic Model Info by Team.rds")
 ```
-## 6. Visualizations:
-
-```{r, warning=FALSE}
-
+## 7. Data Cleaning:
+```{r}
 #Load in the data
 log_model_info <- readRDS("Logistic Model Info by Team.rds")
 
@@ -397,6 +422,42 @@ mcc_vals_long <- mcc_vals %>%
 #Combine the two into a single data frame for plotting
 plot_df <- data.frame(Team = team_names$nfl_team,
                       MCC = mcc_vals_long$mcc_value)
+
+
+#Use Chandlers code to create the appropriate data for plotting
+
+#Create a data frame with indicators for pass and run as well as
+#the Mcnemar's Test P-Value, accuracy p-value, sensitivity, specificity,etc
+log_data <- data.frame(team=unique(log_model_info$nfl_team),
+                            pass_1= -1, pass_0= -1, run_1=-1, run_0=-1,
+                            mn_pvalue=1, acc_pvalue=1, spec=0, sens=0,
+                            pos_pred=0, neg_pred=0, pos_class="")
+
+#Calculate the values that belong in the new columns
+
+for(i in c(1:32)){
+  
+  #Extract the current team
+  team<- log_data$team[i]
+  
+  log_data$pass_1[i] <- log_model_info$conf_mat[[match(team,log_model_info$nfl_team)]]$table[1,1]
+  log_data$pass_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,1]
+  log_data$run_1[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[2,2]
+  log_data$run_0[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$table[1,2]
+  log_data$mn_pvalue[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$overall[7]
+  log_data$acc_pvalue[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$overall[6]
+  log_data$sens[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[1]
+  log_data$spec[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[2]
+  log_data$pos_pred[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[3]
+  log_data$neg_pred[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$byClass[4]
+  log_data$pos_class[i] <- log_model_info$conf_mat[[match(team, log_model_info$nfl_team)]]$positive
+}
+
+```
+## 8. Visualizations:
+
+```{r, warning=FALSE}
+
 
 #Use the correlations in the model info list to plot correllation by team
 corr_plot <- plot_df %>%
@@ -471,4 +532,47 @@ ggsave("graphs/MCC_Logistic.png", plot=corr_plot,
 #Save the plot in a different size for the paper
 ggsave("graphs/Images for paper/MCC_log.png", plot= corr_plot,
        height=4, width=6.5)
+
+
+#Create a plot of specificity vs. sensitivity
+sens_vs_spec_plot <-log_data %>%
+  ggplot(aes(x = spec, y = sens)) +
+  # draw the background lines. sequence for intercept will need changing
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = spec , y0 = sens)) +
+  
+  #Add the team logos for clarity
+  geom_nfl_logos(aes(team_abbr = team,
+                     width = 0.075,
+                     height=0.1))+
+  
+  #Add appropriate labels
+  labs(x="Run Prediction % (Specificity)",
+       y="Pass Prediction % (Sensitivity)",
+       subtitle="Sensitivity and Specificity for Logistic Regression",
+       title="Prediction on NFL Offenses-Run or Pass",
+       
+       #Cite the data source
+       caption="Data from :National Football League (2024)")+
+  theme_bw()+
+  
+  #Justify plot elements for neatness
+  theme(plot.title= element_text(hjust=0.5, size=20),
+        plot.subtitle = element_text(hjust=0.5, size=14),
+        axis.title.x= element_text(size=14),
+        axis.title.y= element_text(size=14)
+        )
+
+#Display the plot
+sens_vs_spec_plot
+
+#Save the plot with a width=12, height =7
+ggsave("graphs/Sens_vs_spec_Logistic.png", plot=sens_vs_spec_plot,
+       width=12, height=7)
+
+#Save the plot in a different size for the paper
+ggsave("graphs/Images for paper/Sens_vs_Spec_Log.png", plot=sens_vs_spec_plot,
+       height=4, width=6.5)
+
 ```
