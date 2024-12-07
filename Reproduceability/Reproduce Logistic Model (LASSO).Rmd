@@ -1,0 +1,147 @@
+---
+title: "Reproduce Logistic Model (LASSO)"
+author: "Justin C. Eldridge"
+date: "2024-12-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#Load the appropriate libraries:
+library(ggplot2)
+library(tidymodels)
+library(tidyr)
+library(glmnet)
+library(mltools)
+library(caret)
+library(nflplotR)
+library(dplyr)
+library(tidyverse)
+```
+
+# Logistic Model (LASSO)
+
+This document contains all the code necessary to reproduce the logistic models along with the associated visualizations.
+
+## Contents:
+  1. Variables
+  2. Lasso Model
+  3. Tuning Lasso
+  4. Logistic Regression Model (Entire Data Set)
+  5. Logistic Regression Models by Team
+  6. Visualizations
+  
+
+## 1. Variables:
+
+  Using our background knowledge and drawing on our EDA we decided to include the following variables in our models.
+  
+  
+  **_Game Characteristics:_**
+
+- **`game_id`**: Unique identifier for the game
+- **`play_id`**: Unique identifier for a specific play
+- **`possession_team`**: Identifies the offensive team
+- **`week`**: Identifies which week of the season the game was in
+- **`run_pass`**: Indicates if the play was a run or a pass (response variable)
+- **`down`**: Identifies which down the offensive team was on for a particular play
+- **`yards_to_go`**: The number of yards needed to get a first down
+- **`yards_to_endzone`**: The number of yards to the opponent's endzone
+- **`redzone`**: Indicates whether the offense is within 20 yards of the opponent's endzone
+- **`sec_in_half`**: The number of seconds remaining on the play clock in the current half
+- **`epa_lag`**: Serial correlation of expected points added
+
+\newpage
+
+**_Team Characteristics:_**
+
+- **`offense_formation`**: Categorical variable indicating what formation the offense uses
+- **`receiver_alignment`**: Enumerated as 0x0, 1x0, 1x1, 2x0, 2x1, 2x2, 3x0, 3x1, 3x2 (text)
+- **`curr_win_percentage`**: Win percentage for the current offensive team
+- **`form_change`**: Uses shifts to determine if the offense changed formation before the ball was snapped
+
+
+<!-- I'm not sure why the spacing for this last section isn't consistent with the first two -->
+<!-- come back later to fix -->
+**_Player Characteristics:_**
+
+- **`wr_motion`**: Indicates if a wide receiver moved after the line was set
+- **`te_motion`**: Indicates if a tight end moved after the line was set
+- **`rb_motion`**: Indicates if a running back moved after the line was set
+- **`wr_atsnap`**: Indicates if a wide receiver was in motion at the time of the snap
+- **`te_atsnap`**: Indicates if a tight end was in motion at the time of the snap
+- **`rb_atsnap`**: Indicates if a running back was in motion at the time of the snap
+
+## 2. LASSO Model:
+
+```{r, cache=TRUE}
+
+#Load in the data set
+nfl_df <- read.csv("data/modeling_data_frame.csv")
+
+#Make the run pass variable a factor
+nfl_df$run_pass <- as.factor(nfl_df$run_pass)
+
+#Convert the boolean columns into numeric ones
+bool_cols <- c("redzone", "wr_motion", "te_motion", "rb_motion",
+               "wr_atsnap", "te_atsnap", "rb_atsnap")
+nfl_df[bool_cols] <- lapply(nfl_df[bool_cols], as.numeric)
+
+#Remove NA values
+nfl_df <- nfl_df %>%
+  drop_na()
+
+#Use a lasso model to do varaible selection.
+
+#Create a sequence of lambda values to try
+lambda <- lambda <- 10^seq(-2, 10, length.out = 100)
+
+#Create a recipe for the lasso model and normalize the predictors.
+lasso_rec <- recipe(run_pass~., data=nfl_df) %>%
+  
+  #Remove unnecessary variables
+  step_rm(game_id, play_id, possession_team,week) %>%
+  
+  step_novel(all_nominal_predictors()) %>%
+  
+  #Fix error for missing values by assigning them with unknown
+  step_unknown(all_nominal_predictors()) %>%
+  
+  #Fix error where some variables are categorical and not numeric
+  step_dummy(all_nominal_predictors()) %>%
+  
+  #Fix error from some of them having zero variance
+  step_zv(all_predictors())%>%
+  
+  #Normalize the numeric predictors to have mean=0 and sd=1
+  step_normalize(all_numeric_predictors())
+
+#Create an empty data frame to store our lasso estimates
+lasso_ests <- data.frame()
+
+#Fit a lasso model for each lambda in our grid
+for(lam in lambda){
+  lasso_spec <- logistic_reg(mixture=1, penalty=lam)%>%
+    set_mode("classification") %>%
+    set_engine("glmnet")
+  
+  #Fit the model
+  workflow() %>%
+    add_model(lasso_spec) %>%
+    add_recipe(lasso_rec) %>%
+    fit(nfl_df) %>%
+    tidy() %>%
+    bind_rows(lasso_ests)-> lasso_ests
+}
+
+  #Create a line plot of 
+lasso_ests |>
+  filter(term != "(Intercept)") |>
+  ggplot() +
+  geom_line(aes(penalty, estimate, group = term, colour = term)) +
+  coord_trans(x = "log10")+
+  #The legend is so large it obstructs the graph. You can comment out this line
+  # and view the graph in a new window to get a better idea. 
+  theme(legend.position="none")
+```
+
