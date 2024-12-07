@@ -368,7 +368,7 @@ mcc_svm
 ```
 
 
-```{r graph-save, include=F}
+```{r ppt-graph-save, include=F}
 # height and width for the powerpoing slides
 graph_width <- 12
 graph_height <- 7
@@ -378,7 +378,7 @@ ggsave("graphs/SVM Specificity Sensitivity Graph - BW Theme.png", spec_sens_svm,
 ```
 
 
-```{r graph-save, include=F}
+```{r paper-graph-save, include=F}
 # height and width for the paper
 graph_width <- 6.5
 graph_height <- 4
@@ -391,6 +391,8 @@ ggsave("graphs/Images for paper/SVM Specificity Sensitivity Graph - BW Theme.png
 #rf_model_info <- readRDS("NFL_rf_models.rds")
 rf_data <- read.csv("NFL_rf_results.csv")
 log_model_info <- readRDS("Logistic Model Info by Team.rds")
+
+teams_colors_logos <- teams_colors_logos
 ```
 
 ```{r other-data-df-build}
@@ -450,7 +452,7 @@ nfc_table <- nfc_table %>% rowwise() %>%
   mutate(best = max(c(log_mcc, svm_mcc, full_MCC)),
          worst = min(c(log_mcc, svm_mcc, full_MCC)))
 
-nfc_table %>% rename("Team" = team,
+nfc_comp <- nfc_table %>% rename("Team" = team,
                      "Win %" = win_p,
                      "Logistic MCC" = log_mcc,
                      "SVM MCC" = svm_mcc,
@@ -468,16 +470,14 @@ nfc_table %>% rename("Team" = team,
                                                   T ~ "white")) %>%
   column_spec(5, bold = T, background = case_when(nfc_table$full_MCC == nfc_table$best ~ "lightgreen", 
                                                   nfc_table$full_MCC == nfc_table$worst ~ "#ff8282",
-                                                  T ~ "white")) %>%
-  as_image()
+                                                  T ~ "white")) 
 
-  save_kable(file = "NFC_Table.html", self_contained = T)
 
 afc_table <- afc_table %>% rowwise() %>% 
   mutate(best = max(c(log_mcc, svm_mcc, full_MCC)),
          worst = min(c(log_mcc, svm_mcc, full_MCC)))
 
-afc_table %>% rename("Team" = team,
+afc_comp <- afc_table %>% rename("Team" = team,
                      "Win %" = win_p,
                      "Logistic MCC" = log_mcc,
                      "SVM MCC" = svm_mcc,
@@ -495,8 +495,14 @@ afc_table %>% rename("Team" = team,
                                                   T ~ "white")) %>%
   column_spec(5, bold = T, background = case_when(afc_table$full_MCC == afc_table$best ~ "lightgreen", 
                                                   afc_table$full_MCC == afc_table$worst ~ "#ff8282",
-                                                  T ~ "white")) %>%
-  save_kable(file = "AFC_Table.html", self_contained = T)
-  
-view(teams_colors_logos)
+                                                  T ~ "white")) 
+
 ```
+
+```{r save-tables, eval=F}
+## Eval set to false because it doesn't like to knit this code chunk
+nfc_comp %>% save_kable(file = "NFC_Table.html", self_contained = T)
+
+afc_comp %>% save_kable(file = "AFC_Table.html", self_contained = T)
+```
+
