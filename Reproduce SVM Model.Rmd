@@ -227,7 +227,7 @@ saveRDS(svm_model_info, "SVM Model Info by Team.rds")
 ## Graphing
 
 ```{r rds-file-read}
-svm_model_info <- readRDS("data/SVM Model Info by Team.rds")
+svm_model_info <- readRDS("SVM Model Info by Team.rds")
 ```
 
 
@@ -471,7 +471,7 @@ nfc_table %>% rename("Team" = team,
                                                   T ~ "white")) %>%
   as_image()
 
-  save_kable(file = "NFC_Table.png", self_contained = T)
+  save_kable(file = "NFC_Table.html", self_contained = T)
 
 afc_table <- afc_table %>% rowwise() %>% 
   mutate(best = max(c(log_mcc, svm_mcc, full_MCC)),
