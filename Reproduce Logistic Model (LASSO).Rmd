@@ -203,7 +203,7 @@ confusion_mat <- conf_mat(
 print(confusion_mat)
 ```
 
-## Logistic Regression Model (Entire Data Set)
+## 4. Logistic Regression Model (Entire Data Set):
 
 ```{r}
 
@@ -256,4 +256,219 @@ nfl_test$predicted_run_pass <- as.factor(nfl_test$predicted_run_pass)
 
 #Create a confusion matrix with the accuracy
 confusionMatrix(nfl_test$predicted_run_pass, nfl_test$run_pass)
+```
+
+## 5. Logistic Regression Models by Team:
+
+```{r, warning=FALSE}
+
+#Fit the optimal logistic regression model for each team 
+
+
+#Create a list to store the models for each team as well as the confusion
+#matrices
+model_info <- list("nfl_team" = unique(nfl_df$possession_team),
+                   "train_fit" = as.list(seq(32)),
+                   "prediction" = as.list(seq(32)),
+                   "conf_mat" = as.list(seq(32)),
+                   "m_corr"= as.list(seq(32)))
+
+#Specify the logistic formula using the variables selected from lasso
+logistic_formula <- as.formula(paste("run_pass ~",
+                                   paste(selected_vars, collapse = " + ")))
+
+#Use a for loop to create a model for each team and store it in the model info
+#list
+for (i in c(1:32)){
+  
+  #Grab the current team
+  team<-model_info$nfl_team[i]
+  
+  #Add a print statement so we can keep track while its running
+  print(paste("Working on team", team))
+  
+  #Create a data frame with the data for the current team
+  team_df <- nfl_df %>%
+    filter(possession_team==team) %>%
+    mutate(run_pass = as.factor(run_pass))
+  
+  #troublesome receiver alignment value for denver remove it
+  if(team=="DEN"){
+    team_df <- team_df %>%
+      filter(receiver_alignment !="2x0")
+  }
+  
+  #Sort the data by week
+  weeks <- sort(unique(team_df$week))
+  
+  #Split the data into training and testing
+  team_train <- team_df %>%
+    filter(week==c(1,2,3,4,5,6))
+  
+  team_test <- team_df %>%
+    filter(week==c(7,8,9))
+  
+  #Drop the few data points that are in the testing set but not the training set
+  team_train <- team_train %>% 
+    filter(offense_formation %in% team_test$offense_formation, 
+           receiver_alignment %in% team_test$receiver_alignment)
+
+  team_test <- team_test %>% 
+    filter(offense_formation %in% team_train$offense_formation,
+           receiver_alignment %in% team_train$receiver_alignment)
+  
+  #Fit the logistic regression model using the selected variables
+  final_logistic_model <- glm(
+    formula = logistic_formula,
+    data = nfl_train,
+    family = binomial()
+    )
+  
+  #Extract the model
+  train_fit <- final_logistic_model$model
+  
+  #Add the training fit to the list
+  model_info$train_fit[[i]] <- train_fit
+  
+  # Generate predictions on the test set
+  logistic_predictions_prob <- predict(final_logistic_model,
+                                       newdata = team_test, type = "response")
+  
+  #Convert probabilities to class labels based on a threshold of 0.5
+  logistic_predictions_class <- ifelse(logistic_predictions_prob > 0.5,
+                                       "run", "pass")
+  
+  #Add the predicted classes to the model info list
+  model_info$predictions[[i]]<- logistic_predictions_class
+  
+  #Add predictions to the test dataset
+  team_test <- team_test %>%
+    mutate(predicted_run_pass = logistic_predictions_class)
+  
+  #Make sure that the precited pass column is also a factor like the truth col
+  team_test$predicted_run_pass <- as.factor(team_test$predicted_run_pass)
+  
+  #Add the confusion matrix to the model info list
+  model_info$conf_mat[[i]]<-confusionMatrix(team_test$predicted_run_pass,
+                                            team_test$run_pass)
+  
+  #Calculate Matthews correlation coefficient (mltools)
+  model_info$m_corr[[i]]<- mcc(preds=team_test$predicted_run_pass,
+                               actuals= team_test$run_pass)
+  
+  #Add print statements to view the model progress
+  
+  #Print the first couple of confusion matrices as an example
+  if(i<=2){
+    print(confusionMatrix(team_test$predicted_run_pass,team_test$run_pass))
+    print(model_info$m_corr[[i]])
+  }
+  
+}
+#Add an ending print statement
+print("Complete")
+
+#Save the data
+saveRDS(model_info, "Logistic Model Info by Team.rds")
+```
+## 6. Visualizations:
+
+```{r, warning=FALSE}
+
+#Load in the data
+log_model_info <- readRDS("Logistic Model Info by Team.rds")
+
+#Convert some of the list objects into data frames for plotting
+team_names <- as.data.frame(log_model_info$nfl_team)
+
+#Rename the column
+team_names <- team_names %>%
+  rename(nfl_team = `log_model_info$nfl_team`)
+
+mcc_vals <- as.data.frame(log_model_info$m_corr)
+
+mcc_vals_long <- mcc_vals %>%
+  pivot_longer(
+    cols = everything(),        
+    names_to = "variable",      
+    values_to = "mcc_value"     
+  )
+
+#Combine the two into a single data frame for plotting
+plot_df <- data.frame(Team = team_names$nfl_team,
+                      MCC = mcc_vals_long$mcc_value)
+
+#Use the correlations in the model info list to plot correllation by team
+corr_plot <- plot_df %>%
+  ggplot(aes(x=Team, y=MCC))+
+  
+  #Add the team logos for clarity
+  geom_nfl_logos(aes(team_abbr = Team,
+                     width = 0.075,
+                     height=0.1))+
+  
+  #Add a horizontal line at y=0 to visualize the boundary
+  geom_hline(yintercept = 0, color="red")+
+  
+  #Label the two points with the highest (best) MCC
+  annotate("text", x="HOU", y=0.5, label="Best Agreement",
+           color="steelblue", size=3)+
+  annotate("segment", 
+           x="DEN", xend="BUF",
+           y=0.5, yend=0.53,
+           size=2,colour="steelblue",
+           alpha=0.6,arrow=arrow())+
+  annotate("segment", 
+           x="KC", xend="NE",
+           y=0.5, yend=0.45,
+           size=2,colour="steelblue",
+           alpha=0.6,arrow=arrow())+
+  
+  #Label a point where MCC is approximately 0
+  #i.e. teams where the model was as good as randomly guessing
+  annotate("text", x="CIN", y=0.08, label="Random Guessing",
+           color="steelblue", size= 3)+
+  annotate("segment", x="DEN" ,xend="HOU", y=0.05, yend=0,
+           size=2, alpha=0.6,color="steelblue",
+           arrow=arrow())+
+  
+  #Label a point with negative agreement
+  annotate("text", x="CIN", y=-0.08, label="Negative Agreement",
+           color="steelblue", size=3)+
+  annotate("segment", x="DET" ,xend="LV", y=-0.08, yend=-0.08,
+           size=2, alpha=0.6,color="steelblue",
+           arrow=arrow())+
+  
+  #Change the y-axis limits to be consistent with the other models MCC
+  scale_y_continuous(limits=c(-0.3, 0.8))+
+  
+  #Add appropriate labels
+  labs(x="Team",
+       y="Matthew Correlation Coefficient (MCC)",
+       title="Prediction on NFL Offenses- Run or Pass",
+       subtitle="MCC of Logistic Regression (LASSO) ",
+       caption="Data from: NFL Big Data Bowl (2025)")+
+  
+  theme_bw()+
+  
+  #Adjust plot elements for neatness
+  theme(plot.title= element_text(hjust=0.5, size=20),
+        plot.subtitle = element_text(hjust = 0.5, size=14),
+        
+        #Remove the x-axis labels and ticks to clean up the plot
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y= element_text(size=14),
+        axis.title.x= element_text(size=14))
+
+#Display the plot
+corr_plot
+
+#Save the plot and put it into the graphs folder
+ggsave("graphs/MCC_Logistic.png", plot=corr_plot,
+       width=12, height=7)
+
+#Save the plot in a different size for the paper
+ggsave("graphs/Images for paper/MCC_log.png", plot= corr_plot,
+       height=4, width=6.5)
 ```

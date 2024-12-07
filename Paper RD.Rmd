@@ -175,16 +175,24 @@ $$
 
 ## 7. Results- Logistic Regression (LASSO):
 
-```{r echo=FALSE}
-knitr::include_graphics("graphs/Images for paper/MCC_log.png")
-```
+![](graphs/Images for paper/MCC_Logistic_Original.png){width="100%"}
+
+
   In the above figure we can see the value of Matthews Correlation Coefficient for each teams logistic regression model. It is clear that most of the models showed modest levels of positive agreement between predictions and reality with the best agreement of $ 0.53$ occurring in the Baltimore Ravens model (top left), and the second best of $0.46$ for the New Orleans Saints. 
   
-  There were also several models with MCC scores of $\approx 0$. These teams include the Indianapolis Colts, Los Angeles Rams, Pittsburgh Steelers, and the San Francisco 49'ers. The MCC score for these models indicate that their predictions for run or pass were no better than random guessing. This
+  There were also several models with MCC scores of $\approx 0$. These teams include the Indianapolis Colts, Los Angeles Rams, Pittsburgh Steelers, and the San Francisco 49'ers. The MCC score for these models indicate that their predictions for run or pass were no better than random guessing. 
   
   <!-- Do we have some good explanation as to why the logistic model was so much wrose? -->
   
   Finally we can see that three of the models had negative MCC scores, namely the Miami Dolphins, The New York Giants, and the Seattle Seahawks. These MCC scores indicate that the models performed even worse than random guessing. 
+  
+  I have been unable to determine how this happened but I may have made an error in the logistic model. When I tried to put all of my code for the logistic model into one file the resulting plot is different from the one shown above. I cannot say what happened at this stage but I will include the new version of the plot for comparison.
+  
+
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/MCC_log.png")
+```
+
   
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
