@@ -5,8 +5,9 @@ This Project will be working with the NFL's "Big Data Bowl - 2025". That data ca
 
 A sign up may be required in order to pull the data.
 
-Our project will primarily be focused on predicting play patterns for both sides of the ball. 
-- For an Offense, a run or pass prediction will be made.
-- For a Defense, a blitz/no blitz prediciton will be made as well as zone or man pass protection prediction.
+Our project will primarily be focused on predicting play patterns for an Offense. A run or pass prediction will be made
 
 These predicitions will be made using provided data from the NFL, including player substitution data, down and distance situations, field location, and other factors deemed significant through our analysis.
+
+Steps to Reproduce the Rusults from our project:
+-Go to the kaggle link above and download the data
