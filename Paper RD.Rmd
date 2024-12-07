@@ -43,11 +43,10 @@ grid.arrange(
   7. Results- Logistic Regression
   8. Results- Linear Support Vector Machine
   9. Results- Random Forrest
-  10. Results- KNN
-  11. Model Comparison
-  12. Conclusion
-  13. Discussion and Future Research
-  14. Citations
+  10. Model Comparison
+  11. Conclusion
+  12. Discussion and Future Research
+  13. Citations
 
 
   
@@ -87,6 +86,30 @@ knitr::include_graphics("graphs/Images for paper/event_frequency_EDA.png")
 ```{r, echo=FALSE}
 knitr::include_graphics("graphs/Images for paper/play_type_frequency_EDA.png")
 ```
+
+
+Digging deeper, we can observe these trends on a team-by-team basis. We found that most NFL teams pass more than they run. However, four teams deviate from this pattern, running more than they pass. Even in these cases, the difference between run and pass plays is not as drastic as it is for pass-heavy teams.
+
+```{r, echo = FALSE}
+# # Load the images into two plots
+# AFCprop <- grid::rasterGrob(png::readPNG("graphs/Images for paper/final_AFC_prop.png"),
+#                              interpolate = TRUE)
+# NFCprop <- grid::rasterGrob(png::readPNG("graphs/Images for paper/final_NFC_prop.png"),
+#                              interpolate = TRUE)
+# 
+# # Combine the two images side by side
+# grid.arrange(
+#   gridExtra::arrangeGrob(AFCprop, NFCprop, nrow = 2),
+#   ncol = 1
+# )
+```
+```{r, echo =FALSE}
+knitr::include_graphics("graphs/Images for paper/final_AFC_prop.png")
+knitr::include_graphics("graphs/Images for paper/final_NFC_prop.png")
+```
+
+
+
 
 ## 4. Variables and Data Cleaning:
 
@@ -151,7 +174,11 @@ For the SVM Model we knew that the binary classification power would work well f
 
 **Random Forest:**
 
-<!-- Same thing here Gabe -->
+A tree based model, such as a Random Forest, appeared to be a good method for predicting NFL play outcomes given its nonparametric nature. The game of football is very complex with many intricate trends that may be difficult to recognize. Taking into account the many game settings presented in a NFL game, along with the trends and intricacies of a complex NFL offense, this model may be able to distinguish between a potential run or pass.
+
+For testing this method, a model was fit on each NFL team using 7-fold cross-validation to find the optimal parameters. Given our data set included the first nine weeks of the NFL season, the primarily assessed model was trained on the teams first 5-6 games(5 if a team had a bye week in the early parts of the season) and tested on the final 3 games of this period. 
+
+When training the models, the proportion at which a team runs and passes was considered. To account for a potential minority class, we calculated the ratio between the number of cases in the majority class with the number of cases in the minority class. This value was the weight value assigned to the minority class. By weighting the minority class, we were able to assign greater importance to this class when training. Without this, we may notice greater imbalances in the model's ability to predict the minority class. The problem we are attempting to answer relies on this, as predicting a pass or run is equally as important.
 
 **KNN:**
 
@@ -229,6 +256,54 @@ When we look at the breakdown between run and pass predictions in the Sensitivit
 ## 9. Results- Random Forest:
 
 
+Preliminary model assessment included analyzing the best parameters for each team to determine similarities and differences. I found that each team varied widely in the optimal tuning parameters. For example, the Los Angeles Chargers model had a mtry of 5 and a min.node.size of 1 while the Los Angeles Rams had mtry of 9 and min.node.size of 30. Though the best tunes varied, I was surprised to see many teams with min.node.size’s of 1. This would indicate that deep trees were grown, potentially overfitting. However, considering teams may have only been trained on a couple hundred plays, this makes sense.
+
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/final_mcc_rf.png")
+```
+
+As stated prior, to be able to compare model performance across models we used Matthew’s Correlation Coefficient(MCC). The performance of the random forest model was very similar to the SVM model in terms of MCC. All values for teams were above the value of 0.3, meaning that the observed data and the predicted data positively agree.
+
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/final_sensspec_rf.png")
+```
+
+The random forest model provided promising results. When comparing teams’ test run play accuracy(specificity) and pass play accuracy(sensitivity), we find that all values are above 0.5, proving we can accurately predict much better than just a coin flip. We see in the graph that there are not many outlier teams, with the teams forming a circle around the means. This is encouraging to see that model performance doesn’t differ notably from team to team. Overall, the predictions were quite accurate.
+
+```{r, echo=FALSE}
+knitr::include_graphics("graphs/Images for paper/final_predval_rf.png")
+```
+
+
+We can also see how confident we are in our predictions by evaluating the passing predictive value(positive) and running predictive value(negative). These values will tell us when we predict a certain class, how certain we are in that predicted class.
+
+Looking at the graph there are some interesting trends to pull from. We notice that the team with the highest pass predictive value of 0.94, the Tampa Bay Buccaneers, also had one of the highest pass play rates in the league. With this, they have a below average run play predictive value of 0.66, which is still a reasonable level of confidence. We can also see that the four teams that ran more than passed(Tennessee Titans, Atlanta Falcons, Philadelphia Eagles, Chicago Bears) are all located in the bottom right quadrant. This quadrant represents above average run play confidence and below average pass play confidence.
+
+
+```{r, echo=FALSE}
+# # Load the images into two plots
+# CLEvarimp <- grid::rasterGrob(png::readPNG("graphs/Images for paper/final_CLEvar.png"),
+#                              interpolate = TRUE)
+# PHIvarimp <- grid::rasterGrob(png::readPNG("graphs/Images for paper/final_PHIvar.png"),
+#                              interpolate = TRUE)
+# 
+# # Combine the two images side by side
+# grid.arrange(
+#   gridExtra::arrangeGrob(CLEvarimp, PHIvarimp, nrow = 2),
+#   ncol = 1
+# )
+
+knitr::include_graphics("graphs/Images for paper/final_CLEvar.png")
+knitr::include_graphics("graphs/Images for paper/final_PHIvar.png")
+
+```
+
+
+Given there are individual models for each team, the variable importance across models may be drastically different. All teams have different game plans which involve different formations, motions, prioritize running or passing, and may react differently to different game settings. To appreciate this we looked at the best and worst teams in regard to their MCC values. These two teams are the Cleveland Browns with an MCC of 0.66 and the Philadelphia Eagles with an MCC of 0.31. It is interesting to see that both teams had epa lag(the measure of success of the previous play) as one of the most important predictors. For the Browns, it appears the model found formations that may signal whether they pass or run. For the Eagles, it appears the model found trends in different game settings(time left, yards to go, etc.) when determining to pass or run. 
+
+
+
+
 ## 10. Model Comparison:
 
 ```{r, echo=FALSE}
@@ -254,7 +329,16 @@ The performance of the random forest and SVM models were much more comparable wi
 ## 11. Conclusion:
 
 
-## 12. Citations:
+## 12. Discussion and Future Research
+
+Currently, the predictions obtained from our models are so far good. However, we believe there are tings that could be improved upon and explored. Though many of the pre-play variables from the offenses perspective have been covered, we neglected to consider the quality of our opponent. That being said, there may be some opponent defensive performance metrics that may be included in the model. For example, if we included the ability of the opponents run and pass defense, that may give signal to if the offense is better off running versus passing.
+
+Other than including more predictors, we may also try different modeling techniques. Specifically, we have considered evaluating different kernels in our SVM models. Currently, we only evaluated the linear kernel which has shown to be successful. However, the response we are trying to predict may perform better with a more flexible decision boundary such as the radial or polynomial kernel.
+
+Separate from out offensive model, we would like to apply similar methodologies to the defensive side of the ball. We could very easily apply the same predictors we have(and more specific to the defensive perspective) to predict whether a team will play zone coverage, man coverage, blitz and more. This problem would introduce more response classes and create a potentially more difficult problem.
+
+
+## 13. Citations:
 
 Michael Lopez, Thompson Bliss, Ally Blake, Paul Mooney, and Addison Howard. NFL Big Data Bowl 2025. https://kaggle.com/competitions/nfl-big-data-bowl-2025, 2024. Kaggle.
 

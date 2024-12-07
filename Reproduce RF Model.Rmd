@@ -1,0 +1,685 @@
+---
+title: "Reproduce RF Model"
+output: html_document
+date: "2024-12-07"
+---
+
+Packages
+```{r}
+library(caret)
+library(dplyr)
+library(ranger)
+library(tidyverse)
+library(pROC)
+library(nflplotR)
+library(nflreadr)
+library(dplyr)
+```
+
+Data
+```{r}
+model_data <- read.csv("data/modeling_data_frame.csv") %>% 
+  mutate(run_pass = as.factor(run_pass),
+         down = as.factor(down),
+         offense_formation = as.factor(offense_formation),
+         form_change = as.factor(form_change),
+         ) %>% 
+  na.omit()
+
+# Create a data frame of all combinations to remove
+remove_combinations <- data.frame(
+  possession_team = c(
+    "ARI", "ARI", "ATL", "BAL", "BUF", "BUF", "BUF", "CAR", "CAR", "CAR",
+    "CHI", "CLE", "CLE", "DAL", "DEN", "DEN", "DET", "DET", "HOU", "IND",
+    "IND", "IND", "JAX", "JAX", "KC", "KC", "LA", "LV", "LV", "MIA",
+    "MIN", "NE", "NE", "NO", "NYG", "NYJ", "NYJ", "NYJ", "NYJ", "PIT",
+    "PIT", "SEA", "SEA", "SF", "TEN", "TEN", "WAS", "WAS"
+  ),
+  offense_formation = c(
+    "I_FORM", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT", "JUMBO", "PISTOL", "WILDCAT",
+    "WILDCAT", "PISTOL", "WILDCAT", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "PISTOL", "PISTOL", "JUMBO",
+    "PISTOL", "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT", "PISTOL", "JUMBO", "WILDCAT", "WILDCAT",
+    "PISTOL", "PISTOL", "WILDCAT", "JUMBO", "JUMBO", "I_FORM", "JUMBO", "PISTOL", "WILDCAT", "JUMBO",
+    "WILDCAT", "JUMBO", "WILDCAT", "JUMBO", "JUMBO", "WILDCAT", "JUMBO", "WILDCAT"
+  )
+)
+
+# Filter the dataset using anti_join
+model_data <- model_data %>%
+  anti_join(remove_combinations, by = c("possession_team", "offense_formation"))
+```
+
+Model List Structure - Takes very long to run, below is the final structure
+```{r, eval=FALSE}
+team_results <- list()
+
+teams <- model_data  %>%
+        select(possession_team) %>%
+        filter(possession_team != "TEN") %>%
+        distinct() %>% pull()
+
+
+
+count <- 0
+
+for (team in teams){
+  
+  count <- count + 1
+  print(count)
+  print(team)
+  
+  #Initialize  team 
+team_results[[team]] <- list(
+    data = list(),
+    models = list(
+      full = list(
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      ),
+      rec1 = list(
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      ),
+      rec2 = list(  # Added rec2
+        model = NA,
+        weight = list(
+          type = NA,
+          value = NA
+        ),
+        opt = NA,
+        confmat = NA,
+        confmat_opt = NA
+      )
+    )
+)
+  
+  #Filter team data and weeks played
+  team_data <- model_data %>% filter(possession_team == team)
+  weeks <- team_data %>% select(week) %>% distinct() %>% pull()
+  
+  ## Get weeks for both training and testing types
+  full_test_weeks <- tail(weeks, 3)
+  full_train_weeks <- weeks[1:(length(weeks)-3)]
+  
+  rec2_test_weeks <- tail(weeks, 1)
+  rec2_train_weeks <- weeks[(length(weeks)-3):(length(weeks)-1)]
+  
+  rec1_test_weeks <- weeks[5]
+  rec1_train_weeks <- weeks[2:4]
+  
+
+  
+  #Fill data for team
+  team_results[[team]]$data$full_train <- team_data %>% filter(week %in% full_train_weeks)
+  team_results[[team]]$data$full_test <- team_data %>% filter(week %in% full_test_weeks)
+  team_results[[team]]$data$rec1_train <- team_data %>% filter(week %in% rec1_train_weeks)
+  team_results[[team]]$data$rec1_test <- team_data %>% filter(week %in% rec1_test_weeks)
+  team_results[[team]]$data$rec2_train <- team_data %>% filter(week %in% rec2_train_weeks)
+  team_results[[team]]$data$rec2_test <- team_data %>% filter(week %in% rec2_test_weeks)
+  
+  ##### Modeling #####
+  
+  # Weights
+  
+  ## Weights Full
+  n_run_full <- sum(team_results[[team]]$data$full_train$run_pass == "run")
+  n_pass_full <- sum(team_results[[team]]$data$full_train$run_pass == "pass")
+  
+  if (n_run_full > n_pass_full) {
+    full_weight_ratio = n_run_full/n_pass_full
+    
+    full_weight_vector <- numeric(nrow(team_results[[team]]$data$full_train))
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "run"] <- 1
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "pass"] <- full_weight_ratio
+    
+    full_weight_class <- "pass"
+    
+  } else if (n_pass_full > n_run_full){
+    
+    full_weight_ratio = n_pass_full/n_run_full
+    
+    full_weight_vector <- numeric(nrow(team_results[[team]]$data$full_train))
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "pass"] <- 1
+    full_weight_vector[team_results[[team]]$data$full_train$run_pass == "run"] <- full_weight_ratio
+    
+    full_weight_class <- "run"
+    
+  }
+  
+  ## Weights Rec
+  
+## Weights Rec1
+n_run_rec1 <- sum(team_results[[team]]$data$rec1_train$run_pass == "run")
+n_pass_rec1 <- sum(team_results[[team]]$data$rec1_train$run_pass == "pass")
+
+if (n_run_rec1 > n_pass_rec1) {
+    rec1_weight_ratio = n_run_rec1/n_pass_rec1
+    
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- rec1_weight_ratio
+    
+    rec1_weight_class <- "pass"
+    
+} else if (n_pass_rec1 > n_run_rec1){
+    rec1_weight_ratio = n_pass_rec1/n_run_rec1
+    
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- rec1_weight_ratio
+    
+    rec1_weight_class <- "run"
+
+} else if (n_pass_rec1 == n_run_rec1){
+  
+    rec1_weight_ratio = n_pass_rec1/n_run_rec1
+    
+    rec1_weight_vector <- numeric(nrow(team_results[[team]]$data$rec1_train))
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "pass"] <- 1
+    rec1_weight_vector[team_results[[team]]$data$rec1_train$run_pass == "run"] <- 1
+    
+    rec1_weight_class <- "none"
+  
+}
+
+## Weights Rec2
+n_run_rec2 <- sum(team_results[[team]]$data$rec2_train$run_pass == "run")
+n_pass_rec2 <- sum(team_results[[team]]$data$rec2_train$run_pass == "pass")
+
+if (n_run_rec2 > n_pass_rec2) {
+    rec2_weight_ratio = n_run_rec2/n_pass_rec2
+    
+    rec2_weight_vector <- numeric(nrow(team_results[[team]]$data$rec2_train))
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "run"] <- 1
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "pass"] <- rec2_weight_ratio
+    
+    rec2_weight_class <- "pass"
+    
+} else if (n_pass_rec2 > n_run_rec2){
+    rec2_weight_ratio = n_pass_rec2/n_run_rec2
+    
+    rec2_weight_vector <- numeric(nrow(team_results[[team]]$data$rec2_train))
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "pass"] <- 1
+    rec2_weight_vector[team_results[[team]]$data$rec2_train$run_pass == "run"] <- rec2_weight_ratio
+    
+    rec2_weight_class <- "run"
+}
+
+
+  
+  #Store weight class
+  team_results[[team]]$models$full$weight$type <- full_weight_class
+  team_results[[team]]$models$full$weight$value <- full_weight_ratio
+
+  team_results[[team]]$models$rec1$weight$type <- rec1_weight_class
+  team_results[[team]]$models$rec1$weight$value <- rec1_weight_ratio
+  
+  team_results[[team]]$models$rec2$weight$type <- rec2_weight_class
+  team_results[[team]]$models$rec2$weight$value <- rec2_weight_ratio
+  
+
+  
+  # Tune grid
+
+  tuneGrid <- expand.grid(
+    mtry = seq(1, 16, 1),
+    min.node.size = c(1, 5, 10, 15, 20, 25, 30, 35),
+    splitrule = c("gini", "extratrees")
+  )
+  
+    ctrl <- trainControl(
+    method = "cv",
+    classProbs = TRUE,
+    summaryFunction = twoClassSummary,
+    search = "grid",
+    number = 7,
+    savePredictions = "final"
+  )
+    
+    
+  ##### Full model #####
+  
+  set.seed(120220)
+  full_rf <- train(
+    run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+               #receiver_alignment + 
+               epa_lag + curr_win_percentage + form_change + wr_motion +
+               te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+    data = team_results[[team]]$data$full_train,
+    method = "ranger",
+    tuneGrid = tuneGrid,
+    trControl = ctrl,
+    metric = "ROC",
+    importance = 'permutation',
+    num.trees = 500,
+    weights = full_weight_vector
+  )
+  
+  team_results[[team]]$models$full$model <- full_rf
+  
+  
+  # Prediction Accuracy
+  
+  #Optimal Treshold
+  train_predictions <- predict(full_rf, newdata = team_results[[team]]$data$full_train, type = "prob")
+  roc_obj <- roc(team_results[[team]]$data$full_train$run_pass, train_predictions[,"run"])
+  opt <- coords(roc_obj, "best", ret = "threshold", best.method = "youden")[[1]]
+  
+  team_results[[team]]$models$full$opt <- opt
+
+
+  
+  
+  #Confusion matrix raw
+  class_raw <- predict(full_rf, newdata = team_results[[team]]$data$full_test)
+  full_confmat <- confusionMatrix(class_raw, 
+                                 team_results[[team]]$data$full_test$run_pass,  # Added $run_pass
+                                 positive = "run")
+  
+  team_results[[team]]$models$full$confmat <- full_confmat
+  
+  #Confusion matrix altered
+  pred_probs_full <- predict(full_rf, newdata = team_results[[team]]$data$full_test, type = "prob")
+  class_alt <- as.factor(ifelse(pred_probs_full[, "run"] > opt, "run", "pass"))
+  
+  full_confmat_alt <- confusionMatrix(class_alt, team_results[[team]]$data$full_test$run_pass, positive = "run")
+  team_results[[team]]$models$full$confmat_opt <- full_confmat_alt
+  
+##########
+  
+  print("Full Model Complete")
+  
+##### Rec1 model #####
+  
+set.seed(120220)
+rec1_rf <- train(
+  run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+             #receiver_alignment + 
+             epa_lag + curr_win_percentage + form_change + wr_motion +
+             te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+  data = team_results[[team]]$data$rec1_train,
+  method = "ranger",
+  tuneGrid = tuneGrid,
+  trControl = ctrl,
+  metric = "ROC",
+  importance = 'permutation',
+  num.trees = 500,
+  weights = rec1_weight_vector
+)
+
+team_results[[team]]$models$rec1$model <- rec1_rf
+
+# Prediction Accuracy
+
+#Optimal Threshold
+train_predictions_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_train, type = "prob")
+roc_obj_rec1 <- roc(team_results[[team]]$data$rec1_train$run_pass, train_predictions_rec1[,"run"])
+opt_rec1 <- coords(roc_obj_rec1, "best", ret = "threshold", best.method = "youden")[[1]]
+
+team_results[[team]]$models$rec1$opt <- opt_rec1
+
+#Confusion matrix raw
+class_raw_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test)
+rec1_confmat <- confusionMatrix(class_raw_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
+team_results[[team]]$models$rec1$confmat <- rec1_confmat
+
+#Confusion matrix altered
+pred_probs_rec1 <- predict(rec1_rf, newdata = team_results[[team]]$data$rec1_test, type = "prob")
+class_alt_rec1 <- as.factor(ifelse(pred_probs_rec1[, "run"] > opt_rec1, "run", "pass"))
+
+rec1_confmat_alt <- confusionMatrix(class_alt_rec1, team_results[[team]]$data$rec1_test$run_pass, positive = "run")
+team_results[[team]]$models$rec1$confmat_opt <- rec1_confmat_alt
+
+print("Rec1 Model Complete")
+
+##### Rec2 model #####
+
+set.seed(120220)
+rec2_rf <- train(
+  run_pass ~ down + yards_to_go + yards_to_endzone + redzone + sec_in_half + offense_formation +
+             #receiver_alignment + 
+             epa_lag + curr_win_percentage + form_change + wr_motion +
+             te_motion + rb_motion + wr_atsnap + te_atsnap + rb_atsnap,
+  data = team_results[[team]]$data$rec2_train,
+  method = "ranger",
+  tuneGrid = tuneGrid,
+  trControl = ctrl,
+  metric = "ROC",
+  importance = 'permutation',
+  num.trees = 500,
+  weights = rec2_weight_vector
+)
+
+team_results[[team]]$models$rec2$model <- rec2_rf
+
+# Prediction Accuracy
+
+#Optimal Threshold
+train_predictions_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_train, type = "prob")
+roc_obj_rec2 <- roc(team_results[[team]]$data$rec2_train$run_pass, train_predictions_rec2[,"run"])
+opt_rec2 <- coords(roc_obj_rec2, "best", ret = "threshold", best.method = "youden")[[1]]
+
+
+
+team_results[[team]]$models$rec2$opt <- opt_rec2
+
+#Confusion matrix raw
+class_raw_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test)
+rec2_confmat <- confusionMatrix(class_raw_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
+team_results[[team]]$models$rec2$confmat <- rec2_confmat
+
+#Confusion matrix altered
+pred_probs_rec2 <- predict(rec2_rf, newdata = team_results[[team]]$data$rec2_test, type = "prob")
+class_alt_rec2 <- as.factor(ifelse(pred_probs_rec2[, "run"] > opt_rec2, "run", "pass"))
+rec2_confmat_alt <- confusionMatrix(class_alt_rec2, team_results[[team]]$data$rec2_test$run_pass, positive = "run")
+team_results[[team]]$models$rec2$confmat_opt <- rec2_confmat_alt
+
+print("Rec2 Model Complete")
+  
+  
+}
+```
+
+Loadable team model list structure
+```{r}
+team_results <- readRDS("NFL_rf_models.rds")
+```
+
+
+Get results from models:
+```{r}
+#Teams
+teams <- names(team_results)
+
+# First initialize the empty data frame with all columns
+NFL_rf_results <- data.frame()
+
+# Then run your loop code
+
+for (team in teams) {
+  
+  # Calculate accuracy values
+ full_acc <- team_results[[team]]$models$full$confmat$overall[[1]]
+ rec1_acc <- team_results[[team]]$models$rec1$confmat$overall[[1]]
+ rec2_acc <- team_results[[team]]$models$rec2$confmat$overall[[1]]
+
+ # Full model confusion matrix values
+ full_TP <- team_results[[team]]$models$full$confmat$table[2,2]
+ full_TN <- team_results[[team]]$models$full$confmat$table[1,1]
+ full_FP <- team_results[[team]]$models$full$confmat$table[2,1]
+ full_FN <- team_results[[team]]$models$full$confmat$table[1,2]
+
+ 
+ # Rec1 model confusion matrix values
+ rec1_TP <- team_results[[team]]$models$rec1$confmat$table[2,2]
+ rec1_TN <- team_results[[team]]$models$rec1$confmat$table[1,1]
+ rec1_FP <- team_results[[team]]$models$rec1$confmat$table[2,1]
+ rec1_FN <- team_results[[team]]$models$rec1$confmat$table[1,2]
+ 
+ 
+ # Rec2 model confusion matrix values
+ rec2_TP <- team_results[[team]]$models$rec2$confmat$table[2,2]
+ rec2_TN <- team_results[[team]]$models$rec2$confmat$table[1,1]
+ rec2_FP <- team_results[[team]]$models$rec2$confmat$table[2,1]
+ rec2_FN <- team_results[[team]]$models$rec2$confmat$table[1,2]
+ 
+ 
+ full_MCC = (full_TP*full_TN - full_FP*full_FN) /  
+               sqrt((full_TP+full_FP)*(full_TP+full_FN)*(full_TN+full_FP)*(full_TN+full_FN))
+
+ 
+ rec1_MCC = (rec1_TP*rec1_TN - rec1_FP*rec1_FN) /  
+               sqrt((rec1_TP+rec1_FP)*(rec1_TP+rec1_FN)*(rec1_TN+rec1_FP)*(rec1_TN+rec1_FN))
+ 
+
+ rec2_MCC = (rec2_TP*rec2_TN - rec2_FP*rec2_FN) /  
+               sqrt((rec2_TP+rec2_FP)*(rec2_TP+rec2_FN)*(rec2_TN+rec2_FP)*(rec2_TN+rec2_FN))
+  
+  data <- data.frame(
+    team = team,
+    
+    #Full
+    
+    full_acc = full_acc,
+    full_MCC = full_MCC,
+
+    full_n_run = sum(team_results[[team]]$data$full_test$run_pass == "run") +
+                      sum(team_results[[team]]$data$full_train$run_pass == "run"),
+    full_n_pass = sum(team_results[[team]]$data$full_test$run_pass == "pass") +
+                        sum(team_results[[team]]$data$full_train$run_pass == "pass"),
+    full_pa_acc = team_results[[team]]$models$full$confmat$byClass[[2]],
+    full_ru_acc = team_results[[team]]$models$full$confmat$byClass[[1]],
+    full_pa_npv = team_results[[team]]$models$full$confmat$byClass[[4]],
+    full_ru_ppv = team_results[[team]]$models$full$confmat$byClass[[3]],
+
+
+    #Rec1
+
+    rec1_acc = rec1_acc,
+    rec1_MCC = rec1_MCC,
+    rec1_pa_acc = team_results[[team]]$models$rec1$confmat$byClass[[2]],
+    rec1_ru_acc = team_results[[team]]$models$rec1$confmat$byClass[[1]],
+    rec1_pa_npv = team_results[[team]]$models$rec1$confmat$byClass[[4]],
+    rec1_ru_ppv = team_results[[team]]$models$rec1$confmat$byClass[[3]],
+
+
+    #Rec2
+
+    rec2_acc = rec2_acc,
+    rec2_MCC = rec2_MCC,
+    rec2_pa_acc = team_results[[team]]$models$rec2$confmat$byClass[[2]],
+    rec2_ru_acc = team_results[[team]]$models$rec2$confmat$byClass[[1]],
+    rec2_pa_npv = team_results[[team]]$models$rec2$confmat$byClass[[4]],
+    rec2_ru_ppv = team_results[[team]]$models$rec2$confmat$byClass[[3]]
+
+
+  )
+  
+  NFL_rf_results <- rbind(NFL_rf_results, data)
+  
+}
+
+
+NFL_rf_results <- NFL_rf_results %>% 
+  mutate(run_prop = full_n_run/(full_n_run + full_n_pass),
+         pass_prop = full_n_pass/(full_n_pass + full_n_run),
+         tot_plays = full_n_pass + full_n_run)
+```
+
+
+
+Graphs:
+
+Prop plays graphs
+```{r}
+#Prop run vs pass
+NFL_long <- NFL_rf_results %>%
+  select(team, full_n_run, full_n_pass) %>% 
+  pivot_longer(
+    cols = c(full_n_run, full_n_pass),
+    names_to = "type",
+    values_to = "n_play"
+  ) %>% left_join(team_abbr, by = c("team" = "team_abbr"))
+
+
+
+
+#Create AFC and NFC Data
+NFC <- NFL_long %>% filter(team_conf == "NFC")  %>%    
+    group_by(team) %>%  
+  mutate(team_num = cur_group_id() * 2) %>%
+  ungroup()
+
+AFC <- NFL_long %>% filter(team_conf == "AFC")  %>%    
+    group_by(team) %>% 
+  mutate(team_num = cur_group_id() * 2) %>%  
+  ungroup()
+
+#Just switch AFC and NFC
+NFC_prop <- ggplot(NFC, aes(x = team_num, y = n_play, fill = type)) +
+  geom_bar(stat = "identity", 
+           position = position_dodge(width = 1.5),
+           alpha = 0.8,
+           color = "black") +
+  scale_fill_manual(values = c("full_n_pass" = "lightblue", "full_n_run" = "red"),
+                 labels = c("Pass", "Run")) +
+  scale_x_continuous(breaks = NFC$team_num,
+                    labels = NFC$team) +
+  scale_y_continuous(limits = c(0,400), breaks = seq(0,400,50)) +
+  theme_bw() +
+  theme(
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.title.position = "plot",
+    axis.title.x = ggplot2::element_blank(),
+    axis.text.x = nflplotR::element_nfl_logo(size = 1)
+  ) +
+  labs(title = "Distribution of Run and Pass Plays for NFC Teams",
+       y = "# of Plays",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks 1-9",
+       fill = "Play Type")
+
+```
+
+
+Run and Pass Accuracy graph with annotations
+```{r}
+#run/pass accuracy
+spec_sens_RF <- ggplot(data = NFL_rf_results, aes(x = full_ru_acc, y = full_pa_acc)) +
+  # geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
+  # geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = full_ru_acc , y0 = full_pa_acc)) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.075, height = 0.1, alpha = 0.8) +
+  scale_x_continuous(limits = c(0.5,1)) + 
+  scale_y_continuous(limits = c(0.5,1)) +
+  
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "Sensitivity and Specificity of RF Classifier",
+       y = "Pass Prediction (Sensitivity)" ,
+       x = "Run Prediction (Specificity)",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks 1-9") +
+  
+  theme_bw() +
+  theme(
+    # this just makes the background flat white
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.subtitle = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
+  ) +
+  
+  annotate("text", x = 0.95, y = 0.95, size = 3.3, label = "Above avg. run acc,
+           Above avg. pass acc") +
+  annotate("text", x = 0.95, y = 0.55, size = 3.3, label = "Above average run acc,
+           Below avg pass acc") +
+  annotate("text", x = 0.55, y = 0.55, size = 3.3, label = "Below average run acc,
+           Below avg pass acc") +
+  annotate("text", x = 0.55, y = 0.95, size = 3.3, label = "Below average run acc,
+           Above avg pass acc")
+```
+
+
+PPV/NPV Graph
+```{r}
+#run/pass predictive value
+pred_val_RF <- ggplot(data = NFL_rf_results, aes(x = full_ru_ppv, y = full_pa_npv)) +
+  # geom_hline(yintercept = mean(NFL_rf_results$full_pa_acc), alpha = 0.75) +
+  # geom_vline(xintercept = mean(NFL_rf_results$full_ru_acc), alpha = 0.75) +
+  ggplot2::geom_abline(slope = -1, intercept = seq(2, 0.6, -0.1), alpha = .2) +
+  # draw the red dashed mean lines for the data
+  nflplotR::geom_mean_lines(aes(x0 = full_ru_acc , y0 = full_pa_acc)) +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.075, height = 0.1, alpha = 0.8) +
+  scale_x_continuous(limits = c(0.5,1)) + 
+  scale_y_continuous(limits = c(0.5,1)) +
+  
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "PPV and NPV of RF Classifier",
+       y = "Pass Confidence (PPV)" ,
+       x = "Run Confidence (NPV)",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks 1-9") +
+  
+  theme_bw() +
+  theme(
+    # this just makes the background flat white
+    plot.background = element_rect(fill = "white"),
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 20),
+    plot.subtitle = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
+  ) +
+  
+  annotate("text", x = 0.95, y = 0.95, size = 3.3, label = "Above avg. run conf,
+           Above avg. pass conf") +
+  annotate("text", x = 0.95, y = 0.55, size = 3.3, label = "Above average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.55, size = 3.3, label = "Below average run conf,
+           Below avg pass conf") +
+  annotate("text", x = 0.55, y = 0.95, size = 3.3, label = "Below average run conf,
+           Above avg pass conf") 
+
+```
+
+
+MCC Graph
+```{r}
+#MCC
+mcc_rf <- ggplot(data = NFL_rf_results, aes(x = team, y = full_MCC)) +
+  geom_hline(yintercept = 0, color = "red") +
+  nflplotR::geom_nfl_logos(aes(team_abbr = team), width = 0.05, alpha = 0.85) +
+  scale_y_continuous(limits = c(-0.3,0.8)) +
+  theme_bw() + 
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 20),
+        plot.subtitle = element_text(hjust = 0.5, size = 14),
+        axis.text.y = element_text(size = 10),
+        axis.title.y = element_text(size = 14)) +
+  labs(title = "Prediction on NFL Offenses - Run or Pass",
+       subtitle = "MCC of RF Classifier",
+       y = "Matthews Correlation Coefficient (MCC)",
+       x = "",
+       caption = "data from NFL Big Data Bowl: 2022 regular season weeks1-9")
+
+```
+
+VarImp Graph(s):
+```{r}
+#Change team that you want to do
+import <- team_results$CLE$models$full$model %>% varImp
+
+cle_var <- ggplot(import, aes(x = reorder(rownames(import$importance), import$importance$Overall),
+                      y = import$importance$Overall)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Variable Importance Plot for the Cleveland Browns",
+    x = "Predictors",
+    y = "Importance"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  )
+```
+
+
