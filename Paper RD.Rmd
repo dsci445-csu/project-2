@@ -159,7 +159,7 @@ These are the variables incorporating the player tracking data. Initially we wer
 
 ## 5. Model Selection:
 
-  We were interested in predicting the type of play the offense will execute. We had a large number of predictors and the predictor space was further increased by our addition of several indicator variables for player motion. We therefore selected models that are good for binary classification and those that can handle larger predictor spaces without taking an excessive amount of time to run. We additionally wanted to try a non-parametric approach for comparison. These considerations lead us to choose the following models.
+  We were interested in predicting the type of play the offense will execute. We had a large number of predictors and the predictor space was further increased by our addition of several indicator variables for player motion. We therefore selected models that are good for binary classification and those that can handle larger predictor spaces without taking an excessive amount of time to run. We additionally wanted to try a non-parametric approach for comparison. We decided to fit models by teams as there is significant variation in play style and strategy across the league. For example, we can see from the run pass proportion graphs that some teams are much more likely to pass in all situations. This makes sense as teams who have very good quarterbacks are most likely to utilize pass plays. These considerations lead us to choose the following models.
   
 **Logistic Regression (LASSO):**
 
