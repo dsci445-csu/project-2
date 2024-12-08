@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
-```{r, echo=FALSE,fig.height=4, fig.width=6.5}
+```{r, echo=FALSE,fig.height=4, fig.width=6.5, warning=F}
 library(gridExtra)
 library(ggplot2)
 library(png)
@@ -352,3 +352,6 @@ Carl S (2024). nflplotR: NFL Logo Plots in 'ggplot2' and 'gt'. R package version
 
 DataScience-ProF. (2024, September 8). Understanding the Matthews correlation coefficient (MCC) in machine learning. Medium. https://medium.com/@TheDataScience-ProF/understanding-the-matthews-correlation-coefficient-mcc-in-machine-learning-26e8049f8572#:~:text=The%20MCC%20can%20be%20understood,between%20predictions%20and%20true%20outcomes 
 
+Carl S (2024). nflplotR: NFL Logo Plots in 'ggplot2' and 'gt'. R package version 1.4.0.9001, https://github.com/nflverse/nflplotR, https://nflplotr.nflverse.com.
+
+Carl S, Baldwin B (2024). nflfastR: Functions to Efficiently Access NFL Play by Play Data. R package version 5.0.0.9000, https://github.com/nflverse/nflfastR, https://www.nflfastr.com/.
