@@ -496,6 +496,8 @@ NFL_rf_results <- NFL_rf_results %>%
   mutate(run_prop = full_n_run/(full_n_run + full_n_pass),
          pass_prop = full_n_pass/(full_n_pass + full_n_run),
          tot_plays = full_n_pass + full_n_run)
+
+write.csv(NFL_rf_results, "NFL_rf_results.csv", row.names = FALSE)
 ```
 
 
