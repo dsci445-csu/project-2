@@ -15,9 +15,9 @@ Steps to Reproduce the Rusults from our project:
 - Run the "NFL Data Cleaning.Rmd" file from top to bottom
 - Run the "Reproduce Logistic Model (LASSO).Rmd" file from top to bottom
 - NOTE: The following two steps produce large .rds files that will be provided as model runtimes exceeded 4 Hours total
-- Run the [insert RF Model file name here] file from top to bottom
-- Run the "Rreproduce SVM Model.Rmd" file from top to bottom
-- NOTE: The above produces two tables as .html files. The .png versions of these were made with a screen grab and will be provided
+- Run the "Reproduce RF Model.Rmd" file from top to bottom
+- Run the "Reproduce SVM Model.Rmd" file from top to bottom
+- NOTE: The above SVM file produces two tables as .html files. The .png versions of these were made with a screen grab and will be provided
 
 
 These steps will reproduce our results and allow a kniting of the Final Paper.
