@@ -329,6 +329,8 @@ If we were to compare just the random forest to the SVM we can look at the distr
 
 ## 11. Conclusion:
 
+For this project we sought to complete the 2024 NFL Big Data Bowl. This year's competition involved predicting play outcomes based on pre-snap events provided by a conglomerate of data from the NFL. We employed different modeling techniques on all 32 NFL teams to determine which would be best at capturing the many intricate trends within NFL offenses. The models attempted were a lasso logistic regression, linear SVM, and random forest. Using the Matthew’s Correlation Coefficient, we were able to compare across models. It was determined that the SVM and random forest both performed well, with the slight edge to the random forest. We were happy with our results, but found areas we may be able to improve the model and data.
+
 
 ## 12. Discussion and Future Research
 
