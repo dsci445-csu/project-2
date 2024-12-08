@@ -242,7 +242,7 @@ knitr::include_graphics("graphs/Images for paper/Sens_vs_Spec_log.png")
 knitr::include_graphics("graphs/Images for paper/MCC for SVM.png")
 ```
 
-SVM performed well in terms of classification using the MCC. In the MCC plot for each team we see a band around 0.3 to 0.7 that each team lives in. Some are higher than others but all of them are above 0 indicating the SVM model performed quite well at predicting run or pass. 
+SVM performed well in terms of classification using the MCC. In the MCC plot for each team we see a band around 0.3 to 0.7 that each team lives in. Some are higher than others but all of them are above 0 indicating the SVM model performed quite well at predicting run or pass. We tried to see if there were any trends in the predictability based on win percentage or conference. However these plots did not show any trends indicating even further that teams are quite unique when it comes to their tendencies. 
 
 \newpage
 
