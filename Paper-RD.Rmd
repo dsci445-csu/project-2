@@ -336,6 +336,8 @@ For this project we sought to complete the 2024 NFL Big Data Bowl. This year's c
 
 Currently, the predictions obtained from our models are solid. However, we believe there are things that could be improved upon and explored. Though many of the pre-play variables from the offenses perspective have been covered, we neglected to consider the quality of our opponent. That being said, there may be some opponent defensive performance metrics that may be included in the model. For example, if we included the ability of the opponents run and pass defense, that may give signal to if the offense is better off running versus passing.
 
+Given the tracking data we have access to, we could delve deeper into how we are accounting for motions. Currently we have simple booleans accounting for if a motion or shift occurred, but we could indicate on the depth and style of the motion as well.
+
 Other than including more predictors, we may also try different modeling techniques. Specifically, we have considered evaluating different kernels in our SVM models. Currently, we only evaluated the linear kernel which has shown to be successful. However, the response we are trying to predict may perform better with a more flexible decision boundary such as the radial or polynomial kernel.
 
 Separate from out offensive model, we would like to apply similar methodologies to the defensive side of the ball. We could very easily apply the same predictors we have(and more specific to the defensive perspective) to predict whether a team will play zone coverage, man coverage, blitz and more. This problem would introduce more response classes and create a potentially more difficult problem.
