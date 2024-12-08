@@ -108,7 +108,7 @@ knitr::include_graphics("graphs/Images for paper/final_AFC_prop.png")
 knitr::include_graphics("graphs/Images for paper/final_NFC_prop.png")
 ```
 
-
+\newpage
 
 
 ## 4. Variables and Data Cleaning:
