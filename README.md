@@ -1,8 +1,9 @@
 # project-2
-**Group 2 Project for DSCI445 @ CSU**  
-**Names:**  
+**Group 2 Project for DSCI445 @ CSU**
+**Names:**
 
-Data from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set") — *Life Style Data* by Omar Essa.  
+## Data
+Data from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set") *Life Style Data* by Omar Essa.  
 
 | **Feature** | **Description** |
 |--------------|-----------------|
@@ -53,6 +54,7 @@ Data from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "L
 
 ---
 
+## Project and analysis
 **Topic:** TBD  
 **Correlation matrix:**  
 ![CorrMatrix](./img/corrMatrix.png)
