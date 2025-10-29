@@ -1,6 +1,6 @@
 # project-2
 **Group 2 Project for DSCI445 @ CSU**
-**Names:**
+**Names:Andi Mellyn, Niamh Corrigan, Seth Hillis, Jessica Reyes**
 
 ## Data
 Data from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set") *Life Style Data* by Omar Essa.  
