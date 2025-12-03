@@ -5,5 +5,92 @@ editor: visual
 ---
 
 ```{r}
+#install.packages("rpart.plot")
+#install.packages("randomForest")
+library(rpart)
+library(randomForest)
+library(rpart.plot)
+```
+
+```{r}
+data_dummy <- read.csv("../Data/clean/CleanLifeDataDummy.csv")
+data_factor <- read.csv("../Data/clean/CleanLifeDataFactor.csv")
+data_dummy[] <- lapply(data_dummy, function(col) {
+  if (!is.numeric(col)) as.numeric(factor(col)) else col
+})
+```
+
+```{r}
+cor_matrix <- cor(data_dummy, use = "pairwise.complete.obs", method = "pearson")
+sort(cor_matrix["Burns_Calories_per_30_min", ], decreasing = TRUE)
+```
+
+```{r}
+sort(round(cor_matrix["Calories_Burned", ], 3), decreasing = TRUE)
+```
+
+```{r}
+set.seed(445)
+
+n <- nrow(data_factor)
+train_idx <- sample(seq_len(n), size = 0.8 * n)
+
+train <- data_factor[train_idx, ]
+test  <- data_factor[-train_idx, ]
+target <- "Burns_Calories_per_30_min"
+
+tree_model <- rpart(
+  Burns_Calories_per_30_min ~ .,
+  data   = train,
+  method = "anova",   # regression tree
+  control = rpart.control(
+    cp = 0.01,        # complexity parameter (pruning strength)
+    minsplit = 20
+  )
+)
+
+# Look at the tree
+printcp(tree_model)
+rpart.plot(tree_model)
+```
+
+```{r}
+tree_pred <- predict(tree_model, newdata = test)
+
+# RMSE and R^2 by hand
+rmse_tree <- sqrt(mean((tree_pred - test$Burns_Calories_per_30_min)^2))
+sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
+sse <- sum( (test$Burns_Calories_per_30_min - tree_pred)^2 )
+r2_tree <- 1 - sse/sst
+
+rmse_tree
+r2_tree
+```
+
+```{r}
+p <- ncol(train) - 1
+
+set.seed(445)
+rf_model <- randomForest(
+  Burns_Calories_per_30_min ~ .,
+  data  = train,
+  ntree = 500,
+  mtry  = floor(sqrt(p)),
+  importance = TRUE
+)
+
+rf_model
+```
+
+```{r}
+rf_pred <- predict(rf_model, newdata = test)
+
+rmse_rf <- sqrt(mean((rf_pred - test$Burns_Calories_per_30_min)^2))
+sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
+sse <- sum( (test$Burns_Calories_per_30_min - rf_pred)^2 )
+r2_rf <- 1 - sse/sst
+
+rmse_rf
+r2_rf
 
 ```
