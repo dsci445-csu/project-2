@@ -1,7 +1,8 @@
 # History files
 .Rhistory
 .Rapp.history
-
+slides.html
+slides.rmd
 # Session Data files
 .RData
 .RDataTmp
