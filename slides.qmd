@@ -84,7 +84,7 @@ Machine Learning Motivation: - diversity in variable shapes motivates comparing 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-raw_data = pd.read_csv("Data/Raw/Final_data.csv")
+raw_data = pd.read_csv("./Data/Raw/Final_data.csv")
 
 raw_data.columns = [
     'Age',
@@ -207,8 +207,8 @@ for col in categorical_cols:
     factor_data[col] = factor_data[col].astype("category")
 
 # Save cleaned datasets
-dummy_data.to_csv("Data/clean/CleanLifeDataDummy.csv", index=False)
-factor_data.to_csv("Data/clean/CleanLifeDataFactor.csv", index=False)
+dummy_data.to_csv("./Data/clean/CleanLifeDataDummy.csv", index=False)
+factor_data.to_csv("./Data/clean/CleanLifeDataFactor.csv", index=False)
 
 
 plt.figure(figsize=(10, 8))
@@ -255,8 +255,8 @@ library(rpart.plot)
 
 set.seed(445)
 
-data_dummy <- read.csv("Data/clean/CleanLifeDataDummy.csv")
-data_factor <- read.csv("Data/clean/CleanLifeDataFactor.csv")
+data_dummy <- read.csv("./Data/clean/CleanLifeDataDummy.csv")
+data_factor <- read.csv("./Data/clean/CleanLifeDataFactor.csv")
 data_dummy[] <- lapply(data_dummy, function(col) {
   if (!is.numeric(col)) as.numeric(factor(col)) else col
 })
