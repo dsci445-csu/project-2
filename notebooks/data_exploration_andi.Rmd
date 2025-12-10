@@ -25,11 +25,63 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, tidy = TRUE
 \hstop
 
 ```{r}
+# raw for information
+raw <- read.csv("../Data/Raw/Final_data.csv")
+colnames(raw)
+```
+
+```{r}
+meal <- read.csv("../Data/Raw/meal_metadata.csv")
+colnames(meal)
+```
+
+```{r}
+nrow(raw)
+```
+
+```{r}
 # dataset
 
 clean <- read.csv("../Data/clean/CleanLifeData.csv")
 
 head(clean)
 
+```
+
+```{r}
+test <- read.csv("../Data/new/data.csv")
+
+head(test)
+```
+
+```{r}
+colnames(clean)
+```
+
+```{r}
+colnames(test)
+```
+
+```{r}
+factor <- read.csv("../Data/clean/CleanLifeDataFactor.csv")
+head(factor)
+```
+
+```{r}
+colnames(factor)
+```
+
+```{r}
+dummy <- read.csv("../Data/clean/CleanLifeDataDummy.csv")
+head(dummy)
+```
+
+```{r}
+colnames(dummy)
+```
+
+```{r}
+forest <- readRDS("../Data/clean/random_forest_model.rds")
+head(forest)
 ```
 
