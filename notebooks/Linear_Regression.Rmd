@@ -1,0 +1,370 @@
+---
+title: "Linear_Regression_Models"
+author: "Andi"
+date: "2025-12-1"
+output: html_document
+---
+
+\colorlet{shadecolor}{gray!10}
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(MASS)
+library(GGally)
+library(tidymodels)
+library(broom)
+#install.packages("leaps")
+library(leaps)
+#install.packages("glmnet")
+library(glmnet)
+library(ISLR)
+#install.packages("pls")
+library(pls)
+#install.packages("fastDummies")
+library(fastDummies)
+library(yardstick)
+#install.packages("effects")
+library(effects)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, tidy = TRUE)
+```
+\newcommand{\hstart}{ \colorlet{shadecolor}{green!20}
+\begin{shaded} }
+\newcommand{\hstop}{  \end{shaded} \colorlet{shadecolor}{gray!10}}
+
+\hstart
+
+# Linear Regression
+
+\hstop
+
+\hstart
+
+## The Data
+
+\hstop
+
+```{r}
+life <- read.csv("../Data/clean/life_clean.csv")
+head(life)
+```
+
+```{r}
+colnames(life)
+```
+
+```{r}
+# dropping the index column and mutating
+life <- life %>%
+  dplyr::select(-X) %>%
+  dplyr::mutate(across(where(is.character), as.factor))
+
+glimpse(life)
+```
+
+#### Variables for each model
+
+
+```{r}
+exer <- c("session_duration_hours", "max_bpm", "avg_bpm", "resting_bpm", "workout_frequency_days_week", "experience_level", "sets", "reps", "workout_type", "difficulty_level", "workout", "target_muscle_group", "body_part", "type_of_muscle")
+
+diet <- c("carbs", "proteins", "fats", "calories", "sugar_g", "sodium_mg", "cholesterol_mg", "meal_type", "diet_type", "daily_meals_frequency", "serving_size_g", "cooking_method", "prep_time_min", "cook_time_min", "pct_carbs", "protein_per_kg", "cal_from_macros", "cal_balance")
+
+combined <- union(exer, diet)
+
+```
+
+```{r}
+setdiff(exer, names(life))
+setdiff(diet, names(life))
+```
+
+## Modeling
+
+```{r}
+# modeling
+make_formula <- function(y, xs) {
+  as.formula(paste(y, "~", paste(xs, collapse = " + ")))
+}
+
+f_exer <- make_formula("burns_calories_per_30min", exer)
+f_diet <- make_formula("burns_calories_per_30min", diet)
+f_combined <- make_formula("burns_calories_per_30min", combined)
+
+lm_exer <- lm(f_exer, data = life)
+lm_diet <- lm(f_diet, data = life)
+lm_combined <- lm(f_combined, data = life)
+
+```
+
+```{r}
+
+broom::glance(lm_exer)
+broom::glance(lm_diet)
+broom::glance(lm_combined)
+
+```
+
+```{r}
+# combine model stats
+
+model_list <- list(
+  exercise = lm_exer,
+  diet = lm_diet,
+  combined = lm_combined
+)
+
+library(broom)
+library(dplyr)
+library(purrr)
+
+model_comp <- model_list %>%
+  imap_dfr(~ glance(.x) %>% mutate(model = .y),.id = NULL) %>%
+  dplyr::select(model, r.squared, adj.r.squared, sigma,          # residual std error 
+                statistic,      # F-statistic 
+                p.value,        # global F-test p-value
+                AIC, BIC) %>%
+  arrange(desc(adj.r.squared))
+
+model_comp
+
+```
+
+```{r}
+rmse <- function(mod) {
+  sqrt(mean(residuals(mod)^2))
+}
+
+rmse_tbl <- model_list %>%
+  imap_dfr(~ tibble(
+    model = .y,
+    rmse  = rmse(.x)
+  ))
+
+rmse_tbl
+
+```
+
+```{r}
+# merging tables
+
+model_summary <- model_comp %>%
+  left_join(rmse_tbl, by = "model")
+
+model_summary
+saveRDS(model_summary, "linear_model_summary.rds")
+
+```
+
+# Plotting
+
+```{r}
+
+plot_diagnostics <- function(model, title_prefix = "") {
+  
+  aug <- augment(model)
+  
+  p1 <- ggplot(aug, aes(.fitted, .resid)) +
+    geom_point(alpha = 0.4) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    labs(title = paste0(title_prefix, "Residuals vs Fitted"),
+         x = "Fitted Values", y = "Residuals") +
+    theme_minimal()
+  
+  p2 <- ggplot(aug, aes(sample = .resid)) +
+    stat_qq(alpha = 0.4) +
+    stat_qq_line() +
+    labs(title = paste0(title_prefix, "QQ Plot of Residuals"),
+         x = "Theoretical Quantiles", y = "Sample Quantiles") +
+    theme_minimal()
+  
+  p3 <- ggplot(aug, aes(.hat, .cooksd)) +
+    geom_point(alpha = 0.4) +
+    labs(title = paste0(title_prefix, "Leverage vs Cook's Distance"),
+         x = "Leverage (Hat Values)", y = "Cook's Distance") +
+    theme_minimal()
+  
+  list(residuals_plot = p1, qq_plot = p2, leverage_plot = p3)
+}
+
+
+```
+
+```{r}
+# exercise diagnositic
+diag_ex <- plot_diagnostics(lm_exer, "Exercise Model: ")
+diag_ex$residuals_plot
+diag_ex$qq_plot
+diag_ex$leverage_plot
+
+```
+
+```{r}
+# diet diagnostic
+diag_diet     <- plot_diagnostics(lm_diet, "Diet Model: ")
+diag_diet
+```
+
+```{r}
+# combined diagnostic
+diag_combined <- plot_diagnostics(lm_combined, "Combined Model: ")
+diag_combined
+```
+
+```{r}
+# predicted regression on exercise
+# augment adds fitted values and residuals
+aug_exer <- augment(lm_exer)
+
+ggplot(aug_exer, aes(x = .fitted, y = burns_calories_per_30min)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Exercise Model: Predicted vs Actual",
+    x = "Predicted Calorie Burn",
+    y = "Actual Calorie Burn"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+aug_diet <- augment(lm_diet)
+
+ggplot(aug_diet, aes(x = .fitted, y = burns_calories_per_30min)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Diet Model: Predicted vs Actual",
+    x = "Predicted Calorie Burn",
+    y = "Actual Calorie Burn"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+aug_combined <- augment(lm_combined)
+
+ggplot(aug_combined, aes(x = .fitted, y = burns_calories_per_30min)) +
+  geom_point(alpha = 0.4, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Exercise & Diet Model: Predicted vs Actual",
+    x = "Predicted Calorie Burn",
+    y = "Actual Calorie Burn"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# p-values for predictors separately
+tidy(lm_exer) %>% arrange(p.value)
+tidy(lm_diet) %>% arrange(p.value)
+tidy(lm_combined) %>% arrange(p.value)
+
+```
+
+
+```{r}
+life %>%
+  ggplot(aes(x = session_duration_hours, y = burns_calories_per_30min)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", formula = y ~ x, color = "red") +
+  labs(
+    title = "Linear Trend: Session Duration vs Calorie Burn",
+    x = "Session Duration (hours)",
+    y = "Calorie Burn per 30min"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+plot_effect <- function(model, var, title_prefix = "") {
+  eff <- effects::effect(var, model, xlevels = 20)
+  df_eff <- as.data.frame(eff)
+  
+  ggplot(df_eff, aes_string(x = var, y = "fit")) +
+    geom_line() +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+    labs(
+      title = paste0(title_prefix, "Effect of ", var),
+      x = var,
+      y = "Predicted Calorie Burn per 30 min"
+    ) +
+    theme_minimal()
+}
+
+# examples:
+plot_effect(lm_exer, "session_duration_hours", "Exercise Model: ")
+plot_effect(lm_exer, "max_bpm", "Exercise Model: ")
+plot_effect(lm_diet, "carbs", "Diet Model: ")
+plot_effect(lm_diet, "calories", "Diet Model: ")
+
+```
+
+```{r}
+eff_carbs <- effects::effect(
+  "carbs",
+  lm_diet,
+  xlevels = 20
+)
+
+eff_carbs_df <- as.data.frame(eff_carbs)
+
+ggplot(eff_carbs_df, aes(x = carbs, y = fit)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  labs(
+    title = "Effect of Carbs on Calorie Burn (Diet Model)",
+    x = "Carbs (g)",
+    y = "Predicted Calorie Burn per 30 min"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+
+summary(eff_carbs_df)
+head(eff_carbs_df)
+
+# turns out carbs are highly collinear with other diet variables
+
+```
+
+
+# Machine Learning
+
+```{r}
+# splitting the data
+set.seed(400)
+
+life_split <- initial_split(life, prop = 0.8)
+life_train <- training(life_split)
+life_test  <- testing(life_split)
+
+```
+
+```{r}
+
+lm_exer_train <- lm(f_exer, data = life_train)
+lm_diet_train <- lm(f_diet, data = life_train)
+lm_combined_train <- lm(f_combined, data = life_train)
+
+```
+
+```{r}
+# testing
+test_results <- tibble(
+  model = c("exercise", "diet", "combined"),
+  rmse = c(
+    rmse_vec(life_test$burns_calories_per_30min, predict(lm_exer_train, life_test)),
+    rmse_vec(life_test$burns_calories_per_30min, predict(lm_diet_train, life_test)),
+    rmse_vec(life_test$burns_calories_per_30min, predict(lm_combined_train, life_test))
+  )
+)
+
+test_results
+
+```
+

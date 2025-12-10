@@ -236,11 +236,12 @@ I am going to run linear models to add to the story and will input here\
 I can say where a linear model worked and where it didn't so we needed more flexible models such as random forest and GAM\
 And that will be a perfect segway into the other models
 
-## Linear Regression
+## Linear Regression: Why we fit it first?
 
-1.  **baseline** model -\> established a benchmark model for predicting calorie burn based on exercise & diet
+1.  **baseline** model -\> established a benchmark model for predicting calorie burn based on exercise & diet predictors
 2.  created a reference for variable importance
-3.  sanity check that the modeled relationships behaved as expected
+3.  interpretability & help identying key relationships
+4.  sanity check that the modeled relationships behaved as expected
 
 ## Linear Regression Methods
 

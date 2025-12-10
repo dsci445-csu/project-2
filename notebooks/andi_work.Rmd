@@ -1,0 +1,110 @@
+---
+title: "Andi Workflow"
+output: html_notebook
+---
+
+```{r}
+library(knitr)
+library(tidyverse)
+library(MASS)
+library(GGally)
+library(tidymodels)
+# install.packages("corrplot")
+library(corrplot)
+library(ggcorrplot)
+```
+
+
+```{r}
+data <- read.csv("../Data/new/data.csv")
+head(data)
+
+```
+
+
+```{r}
+str(data)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+numeric_vars <- data[, sapply(data, is.numeric)]
+cor_matrix <- cor(numeric_vars, use = "pairwise.complete.obs")
+
+corrplot(cor_matrix, method = "color")
+ggcorrplot::ggcorrplot(cor_matrix, lab = FALSE, hc.order = TRUE, tl.cex = 6, tl.srt = 45)
+
+```
+
+#### Correlation: 
+response variable "Burns_Calories_per_30_min"
+
+```{r}
+#| fig.width: 20
+#| fit.height: 15
+
+df <- data   # or life_clean, or dummy, or factor
+
+# Select only numeric columns
+num_df <- dplyr::select(data, where(is.numeric))
+
+# Convert to long format for facetting
+long_df <- num_df %>% 
+  pivot_longer(everything(), names_to = "variable", values_to = "value")
+
+# Plot: one histogram per variable
+ggplot(long_df, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 6),
+    axis.text = element_text(size = 5)
+  )
+```
+
+```{r}
+dummy <- read.csv("../Data/clean/CleanLifeDataDummy.csv")
+colnames(dummy)
+```
+
+```{r}
+factor <- read.csv("../Data/clean/CleanLifeDataFactor.csv")
+colnames(factor)
+```
+
+```{r}
+head(dummy)
+```
+
+```{r}
+str(dummy)
+```
+
+```{r}
+life <- read.csv("../Data/clean/life_clean.csv")
+colnames(life)
+```
+
+
+# Exercise Linear Regression Model
+
+```{r}
+
+```
+
+# Diet Linear Regression Model
+
+```{r}
+
+```
+
+# Combined Linear Regression Model
+
+```{r}
+
+```
+
