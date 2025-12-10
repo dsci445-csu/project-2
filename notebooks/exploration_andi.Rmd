@@ -1,0 +1,212 @@
+---
+title: "Data Exploration - Calories Project"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+# install.packages("skimr")
+library(skimr)
+# install.packages("janitor")
+library(janitor)
+# install.packages("ggcorrplot")
+library(ggcorrplot)
+```
+
+```{r}
+# load clean file
+life_clean <- read.csv("../data/new/data.csv")
+
+glimpse(life_clean)
+skimr::skim(life_clean)
+```
+
+```{r}
+# looking at calories_burned as the y variable
+# calories_burned: total calories burned during the session
+
+summary(life_clean$calories_burned)
+
+ggplot(life_clean, aes(x = calories_burned)) +
+  geom_histogram(bins = 30, color = "purple", fill = "lightblue4")
+
+# looking at a right skewed distribution with a mean about 1280 total calories burned
+
+ggplot(life_clean, aes(x = calories_burned)) +
+  geom_boxplot(fill = "steelblue")
+
+# boxplot shows some outliers on the higher calorie burn end
+
+```
+```{r}
+# looking at burns_calories_per_30min as the y variable
+# burns_calories_per_30min: estimated calories burned in 30 min of "that" exercise
+
+summary(life_clean$caloriesBurned_per30)
+
+ggplot(life_clean, aes(x = caloriesBurned_per30)) +
+  geom_histogram(bins = 30, color = "purple", fill = "lightblue4")
+
+# looking at a left skewed distribution with a mean about 344 calories burned in a 30min session
+
+ggplot(life_clean, aes(x = caloriesBurned_per30)) +
+  geom_boxplot(fill = "steelblue")
+
+# boxplot shows an even distribution of outliers on the lower calorie burn 
+
+```
+
+# Explore Diet Variables
+Using calories_burned for the dependent variable
+
+```{r}
+ggplot(life_clean, aes(x = carbs, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = proteins, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = fats, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = calories, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = sugar_g, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = diet_type, y = calories_burned)) +
+  geom_boxplot()
+
+ggplot(life_clean, aes(x = diet_type, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+```{r}
+mean(life_clean$carbs)
+mean(life_clean$proteins)
+mean(life_clean$fats)
+mean(life_clean$calories)
+mean(life_clean$sugar_g)
+mean(life_clean$cholesterol_mg)
+mean(life_clean$cal_balance)
+
+```
+
+# Explore Exercise Variables
+Using calories_burned for the dependent variable
+
+```{r}
+ggplot(life_clean, aes(x = max_bpm, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = resting_bpm, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = session_duration, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = workout_type, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = workout_frequency, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = sets, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = reps, y = calories_burned)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(life_clean, aes(x = workout_type, y = calories_burned)) +
+  geom_boxplot()
+
+```
+
+```{r}
+num_vars <- dplyr::select(data, where(is.numeric))
+#num_vars <- life_clean |> select(where(is.numeric))
+
+corr <- cor(num_vars, use = "complete.obs")
+
+ggcorrplot::ggcorrplot(corr, lab = FALSE, hc.order = TRUE, tl.cex = 6, tl.srt = 45)
+
+```
+
+```{r}
+#| fig.width: 20
+#| fit.height: 15
+
+
+df <- life_clean   # or life_clean, or dummy, or factor
+
+# Select only numeric columns
+num_df <- dplyr::select(data, where(is.numeric))
+
+# Convert to long format for facetting
+long_df <- num_df %>% 
+  pivot_longer(everything(), names_to = "variable", values_to = "value")
+
+# Plot: one histogram per variable
+ggplot(long_df, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 6),
+    axis.text = element_text(size = 5)
+  )
+```
+
+```{r}
+dummy <- read.csv("../data/clean/CleanLifeDataDummy.csv")
+
+df1 <- dummy   # or life_clean, or dummy, or factor
+
+# Select only numeric columns
+num_df1 <- dplyr::select(data, where(is.numeric))
+
+# Convert to long format for facetting
+long_df <- num_df %>% 
+  pivot_longer(everything(), names_to = "variable", values_to = "value")
+
+# Plot: one histogram per variable
+ggplot(long_df, aes(x = value)) +
+  geom_histogram(fill = "steelblue", color = "white") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 6),
+    axis.text = element_text(size = 5)
+  )
+```
+
+```{r}
+exercise_vars <- c("session_duration", "reps", "sets", 
+                   "resting_bpm", "avg_bpm", "max_bpm")
+
+df %>% 
+  select(any_of(exercise_vars)) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "value") %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal()
+
+```
+
