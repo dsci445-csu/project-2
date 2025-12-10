@@ -242,8 +242,6 @@ And that will be a perfect segway into the other models
 
 We fit a regression tree with a learning rate of 0.01. The nodes are set to require at least 20 observations in each node before it can branch. Splits are chosen to minimize the sum of squared errors.
 
-## Tree Diagram
-
 ```{r}
 #| echo: false
 #| eval: true
@@ -277,26 +275,35 @@ tree_model <- rpart(
     minsplit = 20
   )
 )
+train_pred  <- predict(tree_model, train)
+test_pred   <- predict(tree_model, test)
 
-# Look at the tree
-#printcp(tree_model)
-rpart.plot(tree_model,cex = .5)
+rmse_train  <- sqrt(mean((train_pred - train$Burns_Calories_per_30_min)^2))
+rmse_test   <- sqrt(mean((test_pred  - test$Burns_Calories_per_30_min)^2))
+
+r2_train <- 1 - sum((train$Burns_Calories_per_30_min - train_pred)^2) /
+                 sum((train$Burns_Calories_per_30_min - mean(train$Burns_Calories_per_30_min))^2)
+
+r2_test  <- 1 - sum((test$Burns_Calories_per_30_min - test_pred)^2) /
+                 sum((test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2)
+
+training_rel_error <- as.numeric(tail(tree_model$cptable[, "rel error"], 1))
+
+cat("Training RMSE:", rmse_train, "\n")
+cat("Training R^2:", r2_train, "\n")
+cat("Test RMSE:", rmse_test, "\n")
+cat("Test R^2:", r2_test, "\n")
 ```
 
-## Tree Performance
+
+## Tree Diagram
 
 ```{r}
 #| echo: false
-tree_pred <- predict(tree_model, newdata = test)
-
-# RMSE and R^2 by hand
-rmse_tree <- sqrt(mean((tree_pred - test$Burns_Calories_per_30_min)^2))
-sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
-sse <- sum( (test$Burns_Calories_per_30_min - tree_pred)^2 )
-r2_tree <- 1 - sse/sst
-
-cat("RMSE: ",rmse_tree,"\n")
-cat("R^2: ",r2_tree)
+#| eval: true
+# Look at the tree
+#printcp(tree_model)
+rpart.plot(tree_model,cex = .5)
 ```
 
 ## Feature Importance in the Tree
