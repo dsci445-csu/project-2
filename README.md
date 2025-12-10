@@ -2,6 +2,8 @@
 **Group 2 Project for DSCI445 @ CSU**
 **Names:Niamh Corrigan, Seth Hillis, Andi Mellyn, Jessica Reyes**
 
+Build 3 models: (Diet, exercise, diet & exercise) - Response variable Burns Calories(per 30 minutes)
+
 ## Data
 Data from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set") *Life Style Data* by Omar Essa.  
 
