@@ -448,6 +448,8 @@ combined_gam2 <- mgcv::gam(
 summary(combined_gam2)
 ```
 
+## GAM Model Continued
+
 ```{r}
 #| echo: false
 #| fig-width: 10
@@ -455,3 +457,147 @@ summary(combined_gam2)
 
 plot(combined_gam2, pages = 1, se = TRUE)
 ```
+
+## Cross-Fold Validation
+
+We ran 10-fold CV on each model (linear, GAM, and decision tree). Running 10-fold CV demonstrated the most improvement with the decision tree model.
+
+Tree CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+train_cv_10fold <- vfold_cv(train, v = 5)
+
+tree_tune_spec <- decision_tree(cost_complexity = tune("alpha")) |>
+  set_engine("rpart") |>
+  set_mode("regression")
+
+tree_tune_rec <- recipe(Burns_Calories_per_30_min ~ ., data = train)
+
+tree_wf <- workflow() |>
+  add_model(tree_tune_spec) |>
+  add_recipe(tree_tune_rec)
+
+tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
+
+tune_fit <- tree_wf |>
+  tune_grid(resamples = train_cv_10fold, grid = tune_data, 
+            metrics = metric_set(rmse))
+
+tree_final <- finalize_workflow(tree_wf, select_best(tune_fit, metric = "rmse"))
+tree_final |>
+  fit(data = train) -> tree_final_fit
+
+tree_final_fit |>
+  augment(new_data = test) -> pred
+
+metrics <- pred |>
+  metric_set(rmse, mae, rsq)(
+    truth = Burns_Calories_per_30_min,
+    estimate = .pred
+  )
+
+metrics
+```
+
+## Cross Validation Continued
+
+GAM CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+set.seed(445)
+data_split <- initial_split(data, prop = 0.8)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+
+gam_cv_10fold <- vfold_cv(data_train, v = 5)
+
+gam_spec <- gen_additive_mod(select_features = tune("alpha")) |>
+  set_engine("mgcv") |>
+  set_mode("regression")
+
+gam_formula <- calories_burned ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    experience_level +
+    workout_type
+
+exercise_gam_rec <- recipe(calories_burned ~ ., data = data_train) |>
+  step_dummy(all_nominal_predictors())
+
+exercise_gam_wf <- workflow() |>
+  add_model(gam_spec, formula = gam_formula) |>
+  add_recipe(exercise_gam_rec)
+
+exercise_gam_fit <- exercise_gam_wf |>
+  tune_grid(resamples = gam_cv_10fold, grid = tune_data,
+            metrics = metric_set(rmse, rsq))
+
+exercise_gam_final <- finalize_workflow(exercise_gam_wf, 
+                                        select_best(exercise_gam_fit, metric = "rmse"))
+exercise_gam_final |>
+  fit(data = data_train) -> exercise_gam_final_fit
+
+exercise_gam_final_fit |>
+  augment(new_data = data_test) -> pred
+
+metrics <- pred |>
+  metric_set(rmse, mae, rsq)(
+    truth = calories_burned,
+    estimate = .pred)
+
+metrics
+```
+
+Linear CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+# exercise
+linear_spec <- linear_reg() |>
+  set_engine("lm") |>
+  set_mode("regression")
+
+lin_formula_exercise <- calories_burned ~
+    session_duration +
+    resting_bpm +
+    max_bpm +
+    experience_level +
+    workout_type
+
+exercise_lin_rec <- recipe(calories_burned ~ ., data = data_train) |>
+  step_dummy(all_nominal_predictors(), -all_outcomes())
+
+exercise_lin_wf <- workflow() |>
+  add_model(linear_spec, formula = lin_formula_exercise) |>
+  add_recipe(exercise_lin_rec)
+
+exercise_lin_fit <- exercise_lin_wf |>
+  fit_resamples(resamples = gam_cv_10fold, metrics = metric_set(rmse, rsq))
+
+collect_metrics(exercise_lin_fit)
+```
+
+## Cross Validation Continued
+
+-   While I ran k-fold cross validation with folds of 5, 10, and 15, 5 and 15 did not demonstrate significant or meaningful changes to the RMSE or $R^2$ for any models.
+
+-   The linear model showed improvement with $R^2$, but RMSE also increased, indicating more variance was explained, but the average error between predicted and actual values grew a significant amount.
+
+-   The GAM model was not improved by running CV. RMSE remained high, and there was virtually no change to $R^2$.
+
+## Conclusions
+
+The decision tree model with the random forest performed the best with a $R^2$ of 0.99 and an RMSE of 3.71.
+
+Our data did not perform well using Ordinary Least Squares.
+
+The amount of sugar in a person's diet was significant for understanding calories burned across all 3 models.
