@@ -34,27 +34,21 @@ Motivation:
 
 ## The Research Question
 
-What features in our data have significant effects on calorie burns, and does diet impact the calorie count during exercise?
-
-Proposal Q (Just to make it easier to read): What determines Calorie Burn? Do diet-related variables improve predictive performance beyond exercise variables alone?
+What determines Calorie Burn? Do diet-related variables improve predictive performance beyond exercise variables alone?
 
 ## Data Overview
 
 ::: smaller
-*Life Style Data* by Omar Essa from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set") - 54 columns containing diet & exercise related variables - \~ 20,000 observations, each representing a workout session
+*Life Style Data* by Omar Essa from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set")
 
-Exercise Features:
+54 columns containing diet & exercise related variables & 20,000 observations, each representing a workout session
 
--   session duration, bpm metrics, reps, sets, workout type, experience level
+Exercise Features: session duration, bpm metrics, reps, sets, workout type, experience level
 
-Diet Features:
-
--   carbs, protein, fats, sugar, sodium, diet type, meal type
+Diet Features: carbs, protein, fats, sugar, sodium, diet type, meal type
 :::
 
-## Data Overview (continued)
-
-From Data to Prediction (or- How this Data Plays with Machine Learning)(this could also be it's own slide):
+## From Data to Prediction
 
 -   data contains a mix of numeric & categorical predictors
 
@@ -231,12 +225,44 @@ plt.savefig("img/corrMatrix_factor.png", bbox_inches="tight")
 plt.close()
 ```
 
-## Linear Regression
+## Linear Regression: Why & How
 
-\*\* Notes from Andi \*\*\
-I am going to run linear models to add to the story and will input here\
-I can say where a linear model worked and where it didn't so we needed more flexible models such as random forest and GAM\
-And that will be a perfect segway into the other models
+::: smaller
+Ran 3 linear models for exercise, diet, and exercise & diet combined
+
+-   **establishes a baseline** benchmark for predicting calorie burn
+-   provides a reference point for variable importance
+-   acts as a sanity check before moving to more flexible ML models
+:::
+
+```{R}
+#| echo: false
+lm_model_summary <- readRDS("linear_model_summary.rds")
+lm_model_summary |>
+  dplyr::select(model, r.squared, adj.r.squared, rmse)
+```
+
+## What did the Linear Model Show?
+
+-   all 3 models explained only \~30% of variation in calorie burn
+
+-   RMSE remained high (\~27 calories) indicating predictions lack
+
+Strongest linear predictors were:
+
+-   sets, reps, sugar_g, avg_bpm, and resting_bpm
+
+## Why Linear Regression is Not Enough
+
+::::: columns
+::: column
+![Predicted vs Actual](Ex_predict_Act.png){width="70%"}
+:::
+
+::: column
+![Residuals vs Fitted](res_fitted.png){width="70%"}
+:::
+:::::
 
 ## Single Tree
 
@@ -294,7 +320,6 @@ cat("Training R^2:", r2_train, "\n")
 cat("Test RMSE:", rmse_test, "\n")
 cat("Test R^2:", r2_test, "\n")
 ```
-
 
 ## Tree Diagram
 
@@ -366,7 +391,7 @@ library(gratia)
 
 ```{r}
 #| echo: false
-data <- read.csv("~/project-2/Data/new/data.csv")
+data <- read.csv("./Data/new/data.csv")
 
 exercise_gam <- mgcv::gam(
   calories_burned ~ 
