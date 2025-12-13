@@ -1,0 +1,603 @@
+---
+title: "Project 2"
+author: "Jessica Reyes, Seth Hillis, Niamh Corrigan, Andi Mellyn"
+format: 
+  revealjs:
+    theme: sky
+    slide-number: true
+    margin:  0.05
+  
+editor: visual
+---
+
+## The Machine Learning Problem
+
+*Predicting Calorie Burn: An ML Approach*
+
+-   We treat calorie burn as a **supervised regression problem**
+
+Objective: build models that can accurately predict calorie burn for **new, unseen exercise sessions**
+
+Inputs (features): exercise metrics & diet variables
+
+Output (target): calories burned
+
+## Motivation
+
+Motivation:
+
+-   identify which feature groups (diet or exercise) contribute most to predictive accuracy
+
+-   improve model interpretability by isolating feature effects
+
+-   compare model performance to determine which approaches generalize best to test data (avoid overfitting)
+
+## The Research Question
+
+What determines Calorie Burn? Do diet-related variables improve predictive performance beyond exercise variables alone?
+
+## Data Overview
+
+::: smaller
+*Life Style Data* by Omar Essa from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set")
+
+54 columns containing diet & exercise related variables & 20,000 observations, each representing a workout session
+
+Exercise Features: session duration, bpm metrics, reps, sets, workout type, experience level
+
+Diet Features: carbs, protein, fats, sugar, sodium, diet type, meal type
+:::
+
+## From Data to Prediction
+
+-   data contains a mix of numeric & categorical predictors
+
+-   large size allows reliable **train/test evaluation**
+
+-   mixed structure make it ideal for comparing flexible nonlinear models vs. simpler linear ones
+
+## Data Distributions
+
+![](./img/VariablesHistogram.png){fig-align="center"}
+
+## Data Visualization - Understanding the Shapes
+
+<small>
+
+Exercise variables: show roughly **symmetric** or mild-skew distributions - work well with both **linear models** & **GAM smooth terms**
+
+Diet variables: tend to be **right-skewed** & more tightly clustered - indicates weaker linear signal but potential **nonlinear effects**
+
+Categorical variables: - must be treated as **factors** in ML models
+
+Machine Learning Motivation: - diversity in variable shapes motivates comparing **linear models**, **GAMs**, & **tree-based models** since each handle distributions differently </small>
+
+```{python}
+#| echo: false
+#| eval: false
+import pandas as pd
+import matplotlib.pyplot as plt
+
+raw_data = pd.read_csv("./Data/Raw/Final_data.csv")
+
+raw_data.columns = [
+    'Age',
+    'Gender',
+    'Weight_kg',
+    'Height_m',
+    'Max_BPM',
+    'Avg_BPM',
+    'Resting_BPM',
+    'Session_Duration_hours',
+    'Calories_Burned',
+    'Workout_Type',
+    'Fat_Percentage',
+    'Water_Intake_liters',
+    'Workout_Frequency_days_per_week',
+    'Experience_Level',
+    'BMI',
+    'Daily_meals_frequency',
+    'Physical_exercise',
+    'Carbs',
+    'Proteins',
+    'Fats',
+    'Calories',
+    'meal_name',
+    'meal_type',
+    'diet_type',
+    'sugar_g',
+    'sodium_mg',
+    'cholesterol_mg',
+    'serving_size_g',
+    'cooking_method',
+    'prep_time_min',
+    'cook_time_min',
+    'rating',
+    'Name_of_Exercise',
+    'Sets',
+    'Reps',
+    'Benefit',
+    'Burns_Calories_per_30_min',
+    'Target_Muscle_Group',
+    'Equipment_Needed',
+    'Difficulty_Level',
+    'Body_Part',
+    'Type_of_Muscle',
+    'Workout',
+    'BMI_calc',
+    'cal_from_macros',
+    'pct_carbs',
+    'protein_per_kg',
+    'pct_HRR',
+    'pct_maxHR',
+    'cal_balance',
+    'lean_mass_kg',
+    'expected_burn',
+    'Burns_Calories_per_30_min_bc',
+    'Burns_Calories_Bin'
+]
+
+raw_data.drop([
+    'expected_burn',
+    'Workout',
+    'Burns_Calories_per_30_min_bc',
+    'Burns_Calories_Bin',
+    'cal_from_macros',
+    'pct_carbs',
+    'protein_per_kg',
+    'Body_Part',
+    'Type_of_Muscle',
+    'Target_Muscle_Group',
+    'Equipment_Needed',
+    'Benefit',
+    # 'Daily_meals_frequency',
+    'Physical_exercise',
+    # 'Carbs',
+    # 'Proteins',
+    # 'Fats',
+    # 'Calories',
+    'meal_name',
+    'meal_type',
+    'diet_type',
+    #'sugar_g',
+    #'sodium_mg',
+    #'cholesterol_mg',
+    'serving_size_g',
+    'cooking_method',
+    'prep_time_min',
+    'cook_time_min',
+    'rating',
+    'Name_of_Exercise',
+    'Target_Muscle_Group',
+    'Body_Part',
+    'Workout_Type',
+    'BMI_calc',
+    'cal_balance',
+    'Calories_Burned',
+    "Sets",
+    "Reps",
+    "Session_Duration_hours",
+    # "Avg_BPM",
+    # "Max_BPM",
+    "pct_HRR",
+    "pct_maxHR",
+    # "Resting_BPM"
+], axis=1, inplace=True)
+
+categorical_cols = [
+    'Gender',
+    'Difficulty_Level',
+]
+
+for col in categorical_cols:
+    raw_data[col] = raw_data[col].astype(str)
+
+# Dummy data (one-hot)
+dummy_data = pd.get_dummies(raw_data, columns=categorical_cols, drop_first=True)
+
+# Factor data (keep as categories)
+factor_data = raw_data.copy()
+for col in categorical_cols:
+    factor_data[col] = factor_data[col].astype("category")
+
+# Save cleaned datasets
+dummy_data.to_csv("./Data/clean/CleanLifeDataDummy.csv", index=False)
+factor_data.to_csv("./Data/clean/CleanLifeDataFactor.csv", index=False)
+
+
+plt.figure(figsize=(10, 8))
+corr_dummy = dummy_data.corr()
+plt.matshow(corr_dummy, fignum=0)
+plt.title("Correlation matrix (dummy data)", pad=100)
+plt.colorbar()
+plt.savefig("img/corrMatrix_dummy.png", bbox_inches="tight")
+plt.close()
+
+
+factor_numeric = factor_data.select_dtypes(include="number")
+
+plt.figure(figsize=(10, 8))
+corr_factor = factor_numeric.corr()
+plt.matshow(corr_factor, fignum=0)
+plt.title("Correlation matrix (factor data - numeric variables)", pad=100)
+plt.colorbar()
+plt.savefig("img/corrMatrix_factor.png", bbox_inches="tight")
+plt.close()
+```
+
+## Linear Regression: Why & How
+
+::: smaller
+Ran 3 linear models for exercise, diet, and exercise & diet combined
+
+-   **establishes a baseline** benchmark for predicting calorie burn
+-   provides a reference point for variable importance
+-   acts as a sanity check before moving to more flexible ML models
+:::
+
+```{R}
+#| echo: false
+lm_model_summary <- readRDS("linear_model_summary.rds")
+lm_model_summary |>
+  dplyr::select(model, r.squared, adj.r.squared, rmse)
+```
+
+## What did the Linear Model Show?
+
+-   all 3 models explained only \~30% of variation in calorie burn
+
+-   RMSE remained high (\~27 calories) indicating predictions lack
+
+Strongest linear predictors were:
+
+-   sets, reps, sugar_g, avg_bpm, and resting_bpm
+
+## Why Linear Regression is Not Enough
+
+::::: columns
+::: column
+![Predicted vs Actual](Ex_predict_Act.png){width="70%"}
+:::
+
+::: column
+![Residuals vs Fitted](res_fitted.png){width="70%"}
+:::
+:::::
+
+## Single Tree
+
+We fit a regression tree with a learning rate of 0.01. The nodes are set to require at least 20 observations in each node before it can branch. Splits are chosen to minimize the sum of squared errors.
+
+```{r}
+#| echo: false
+#| eval: true
+#install.packages("rpart.plot")
+#install.packages("randomForest")
+library(rpart)
+library(randomForest)
+library(rpart.plot)
+
+set.seed(445)
+
+data_dummy <- read.csv("./Data/clean/CleanLifeDataDummy.csv")
+data_factor <- read.csv("./Data/clean/CleanLifeDataFactor.csv")
+data_dummy[] <- lapply(data_dummy, function(col) {
+  if (!is.numeric(col)) as.numeric(factor(col)) else col
+})
+
+n <- nrow(data_factor)
+train_idx <- sample(seq_len(n), size = 0.8 * n)
+
+train <- data_factor[train_idx, ]
+test  <- data_factor[-train_idx, ]
+target <- "Burns_Calories_per_30_min"
+
+tree_model <- rpart(
+  Burns_Calories_per_30_min ~ .,
+  data   = train,
+  method = "anova",   # regression tree
+  control = rpart.control(
+    cp = 0.01,        # complexity parameter (pruning strength)
+    minsplit = 20
+  )
+)
+train_pred  <- predict(tree_model, train)
+test_pred   <- predict(tree_model, test)
+
+rmse_train  <- sqrt(mean((train_pred - train$Burns_Calories_per_30_min)^2))
+rmse_test   <- sqrt(mean((test_pred  - test$Burns_Calories_per_30_min)^2))
+
+r2_train <- 1 - sum((train$Burns_Calories_per_30_min - train_pred)^2) /
+                 sum((train$Burns_Calories_per_30_min - mean(train$Burns_Calories_per_30_min))^2)
+
+r2_test  <- 1 - sum((test$Burns_Calories_per_30_min - test_pred)^2) /
+                 sum((test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2)
+
+training_rel_error <- as.numeric(tail(tree_model$cptable[, "rel error"], 1))
+
+cat("Training RMSE:", rmse_train, "\n")
+cat("Training R^2:", r2_train, "\n")
+cat("Test RMSE:", rmse_test, "\n")
+cat("Test R^2:", r2_test, "\n")
+```
+
+## Tree Diagram
+
+```{r}
+#| echo: false
+#| eval: true
+# Look at the tree
+#printcp(tree_model)
+rpart.plot(tree_model,cex = .5)
+```
+
+## Feature Importance in the Tree
+
+```{r}
+sort(tree_model$variable.importance, decreasing = TRUE)
+```
+
+## Random Forest
+
+A single tree is often not useful so we fit a random forest of 500 trees.
+
+```{r}
+p <- ncol(train) - 1
+
+set.seed(123)
+rf_model <- readRDS("Data/models/random_forest_model.rds")
+
+#rf_model <- randomForest(
+#  Burns_Calories_per_30_min ~ .,
+#  data  = train,
+#  ntree = 500,
+#  mtry  = floor(sqrt(p)),
+#  importance = TRUE
+#)
+#saveRDS(rf_model, file = "Data/models/random_forest_model.rds")
+
+rf_model
+
+rf_pred <- predict(rf_model, newdata = test)
+   
+rmse_rf <- sqrt(mean((rf_pred - test$Burns_Calories_per_30_min)^2))
+sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
+sse <- sum( (test$Burns_Calories_per_30_min - rf_pred)^2 )
+r2_rf <- 1 - sse/sst
+```
+
+Testing Statistics:
+
+```{r}
+rmse_rf
+r2_rf
+```
+
+## GAM Model
+
+Although I had hoped the diet variables would noticeably change the results, incorporating exercise alongside diet did not produce a significant difference.
+
+```{r}
+#| echo: false
+#libraries
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(tidymodels)
+library(GGally)
+library(ggplot2)
+library(gratia)
+```
+
+```{r}
+#| echo: false
+data <- read.csv("./Data/new/data.csv")
+
+exercise_gam <- mgcv::gam(
+  calories_burned ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    experience_level +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam)
+```
+
+```{r}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 5
+
+par(mfrow = c(1,3))  
+plot(exercise_gam, select = 1, se = TRUE, main = "Effect of Session Duration")
+plot(exercise_gam, select = 2, se = TRUE, main = "Effect of Resting BPM")
+plot(exercise_gam, select = 3, se = TRUE, main = "Effect of Max BPM")
+
+draw(exercise_gam, residuals = FALSE)
+```
+
+```{r}
+#| echo: false
+#This model of the diet and exercise combined was good
+combined_gam2 <- mgcv::gam(
+  calories_burned ~ 
+    s(session_duration) + 
+    #s(avg_bpm) + 
+    #s(max_bpm) + 
+    s(resting_bpm) + 
+    #s(weight) + 
+    #s(age) + 
+    #s(bmi) + 
+    experience_level + 
+    workout_type +
+    #s(water_intake) + 
+    #s(workout_frequency) + 
+    #daily_meals_frequency +
+    #s(carbs) + 
+    #s(proteins) + 
+    #s(fats) +
+    diet_type,
+  data = data,
+  method = "REML"
+)
+
+summary(combined_gam2)
+```
+
+## GAM Model Continued
+
+```{r}
+#| echo: false
+#| fig-width: 10
+#| fig-height: 5
+
+plot(combined_gam2, pages = 1, se = TRUE)
+```
+
+## Cross-Fold Validation
+
+We ran 10-fold CV on each model (linear, GAM, and decision tree). Running 10-fold CV demonstrated the most improvement with the decision tree model.
+
+Tree CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+train_cv_10fold <- vfold_cv(train, v = 5)
+
+tree_tune_spec <- decision_tree(cost_complexity = tune("alpha")) |>
+  set_engine("rpart") |>
+  set_mode("regression")
+
+tree_tune_rec <- recipe(Burns_Calories_per_30_min ~ ., data = train)
+
+tree_wf <- workflow() |>
+  add_model(tree_tune_spec) |>
+  add_recipe(tree_tune_rec)
+
+tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
+
+tune_fit <- tree_wf |>
+  tune_grid(resamples = train_cv_10fold, grid = tune_data, 
+            metrics = metric_set(rmse))
+
+tree_final <- finalize_workflow(tree_wf, select_best(tune_fit, metric = "rmse"))
+tree_final |>
+  fit(data = train) -> tree_final_fit
+
+tree_final_fit |>
+  augment(new_data = test) -> pred
+
+metrics <- pred |>
+  metric_set(rmse, mae, rsq)(
+    truth = Burns_Calories_per_30_min,
+    estimate = .pred
+  )
+
+metrics
+```
+
+## Cross Validation Continued
+
+GAM CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+set.seed(445)
+data_split <- initial_split(data, prop = 0.8)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+
+gam_cv_10fold <- vfold_cv(data_train, v = 5)
+
+gam_spec <- gen_additive_mod(select_features = tune("alpha")) |>
+  set_engine("mgcv") |>
+  set_mode("regression")
+
+gam_formula <- calories_burned ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    experience_level +
+    workout_type
+
+exercise_gam_rec <- recipe(calories_burned ~ ., data = data_train) |>
+  step_dummy(all_nominal_predictors())
+
+exercise_gam_wf <- workflow() |>
+  add_model(gam_spec, formula = gam_formula) |>
+  add_recipe(exercise_gam_rec)
+
+exercise_gam_fit <- exercise_gam_wf |>
+  tune_grid(resamples = gam_cv_10fold, grid = tune_data,
+            metrics = metric_set(rmse, rsq))
+
+exercise_gam_final <- finalize_workflow(exercise_gam_wf, 
+                                        select_best(exercise_gam_fit, metric = "rmse"))
+exercise_gam_final |>
+  fit(data = data_train) -> exercise_gam_final_fit
+
+exercise_gam_final_fit |>
+  augment(new_data = data_test) -> pred
+
+metrics <- pred |>
+  metric_set(rmse, mae, rsq)(
+    truth = calories_burned,
+    estimate = .pred)
+
+metrics
+```
+
+Linear CV
+
+```{r}
+#| echo: false
+#| eval: true
+
+# exercise
+linear_spec <- linear_reg() |>
+  set_engine("lm") |>
+  set_mode("regression")
+
+lin_formula_exercise <- calories_burned ~
+    session_duration +
+    resting_bpm +
+    max_bpm +
+    experience_level +
+    workout_type
+
+exercise_lin_rec <- recipe(calories_burned ~ ., data = data_train) |>
+  step_dummy(all_nominal_predictors(), -all_outcomes())
+
+exercise_lin_wf <- workflow() |>
+  add_model(linear_spec, formula = lin_formula_exercise) |>
+  add_recipe(exercise_lin_rec)
+
+exercise_lin_fit <- exercise_lin_wf |>
+  fit_resamples(resamples = gam_cv_10fold, metrics = metric_set(rmse, rsq))
+
+collect_metrics(exercise_lin_fit)
+```
+
+## Cross Validation Continued
+
+-   While I ran k-fold cross validation with folds of 5, 10, and 15, 5 and 15 did not demonstrate significant or meaningful changes to the RMSE or $R^2$ for any models.
+
+-   The linear model showed improvement with $R^2$, but RMSE also increased, indicating more variance was explained, but the average error between predicted and actual values grew a significant amount.
+
+-   The GAM model was not improved by running CV. RMSE remained high, and there was virtually no change to $R^2$.
+
+## Conclusions
+
+The decision tree model with the random forest performed the best with a $R^2$ of 0.99 and an RMSE of 3.71.
+
+Our data did not perform well using Ordinary Least Squares.
+
+The amount of sugar in a person's diet was significant for understanding calories burned across all 3 models.
