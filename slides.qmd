@@ -229,28 +229,46 @@ plt.savefig("img/corrMatrix_factor.png", bbox_inches="tight")
 plt.close()
 ```
 
-## Linear Regression
+## Linear Regression: Why & How
 
-\*\* Notes from Andi \*\*\
-I am going to run linear models to add to the story and will input here\
-I can say where a linear model worked and where it didn't so we needed more flexible models such as random forest and GAM\
-And that will be a perfect segway into the other models
+Ran 3 linear models for exercise, diet, and exercise & diet combined
 
-## Linear Regression: Why we fit it first?
+-   **establishes a baseline** benchmark for predicting calorie burn
 
-1.  **baseline** model -\> established a benchmark model for predicting calorie burn based on exercise & diet predictors
-2.  created a reference for variable importance
-3.  interpretability & help identying key relationships
-4.  sanity check that the modeled relationships behaved as expected
+-   provides a reference point for variable importance
 
-## Linear Regression Methods
+-   offers strong interpretability helping us understand key relationships
 
-1.  Fit multiple linear regression models for diet, exercise, and diet & exercise combined
-2.  Checked assumptions: linearity, homoscedasticity, independence, normality
-3.  Evaluated influence/outliers
-4.  Assessed variable significance through coefficient tables
-5.  Compared the 3 models using $R^2$, adjusted $R^2$, F-tests, & RMSE
-6.  Visualized relationships via scatterplots, residual plots, & effects plots
+-   acts as a sanity check before moving to more flexible ML models
+
+```{R}
+#| echo: false
+lm_model_summary <- readRDS("linear_model_summary.rds")
+lm_model_summary |>
+  dplyr::select(model, r.squared, adj.r.squared, rmse)
+```
+
+## What did the Linear Model Show?
+
+-   all 3 models explained only \~30% of variation in calorie burn
+
+-   RMSE remained high (\~27 calories) indicating predictions lack
+
+Strongest linear predictors were:
+
+-   sets, reps, sugar_g, avg_bpm, and resting_bpm
+
+### Why Linear Regression is Not Enough
+
+::::: columns
+::: column
+![Predicted vs Actual](Ex_predict_Act.png){width="60%"}
+:::
+
+::: column
+![Residuals vs Fitted](res_fitted.png){width="60%"}
+:::
+:::::
 
 ## Single Tree
 
@@ -308,7 +326,6 @@ cat("Training R^2:", r2_train, "\n")
 cat("Test RMSE:", rmse_test, "\n")
 cat("Test R^2:", r2_test, "\n")
 ```
-
 
 ## Tree Diagram
 
@@ -380,7 +397,7 @@ library(gratia)
 
 ```{r}
 #| echo: false
-data <- read.csv("~/project-2/Data/new/data.csv")
+data <- read.csv("./Data/new/data.csv")
 
 exercise_gam <- mgcv::gam(
   calories_burned ~ 
