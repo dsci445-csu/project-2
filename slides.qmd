@@ -40,13 +40,10 @@ What determines Calorie Burn? Do diet-related variables improve predictive perfo
 
 ::: smaller
 *Life Style Data* by Omar Essa from [Kaggle](https://www.kaggle.com/datasets/jockeroika/life-style-data "Life Style Data Set")
-<<<<<<< HEAD
 
 \- 54 columns containing diet & exercise related variables & 20,000 observations, each representing a workout session
 
 Exercise Features:
-=======
->>>>>>> a6963e34c80371011971271f0605324c404e11c7
 
 54 columns containing diet & exercise related variables & 20,000 observations, each representing a workout session
 
@@ -234,7 +231,6 @@ plt.close()
 
 ## Linear Regression: Why & How
 
-<<<<<<< HEAD
 Ran 3 linear models for exercise, diet, and exercise & diet combined
 
 -   **establishes a baseline** benchmark for predicting calorie burn
@@ -244,7 +240,6 @@ Ran 3 linear models for exercise, diet, and exercise & diet combined
 -   offers strong interpretability helping us understand key relationships
 
 -   acts as a sanity check before moving to more flexible ML models
-=======
 ::: smaller
 Ran 3 linear models for exercise, diet, and exercise & diet combined
 
@@ -252,7 +247,6 @@ Ran 3 linear models for exercise, diet, and exercise & diet combined
 -   provides a reference point for variable importance
 -   acts as a sanity check before moving to more flexible ML models
 :::
->>>>>>> a6963e34c80371011971271f0605324c404e11c7
 
 ```{R}
 #| echo: false
@@ -260,15 +254,12 @@ lm_model_summary <- readRDS("linear_model_summary.rds")
 lm_model_summary |>
   dplyr::select(model, r.squared, adj.r.squared, rmse)
 ```
-<<<<<<< HEAD
 
 ## What did the Linear Model Show?
 
-=======
 
 ## What did the Linear Model Show?
 
->>>>>>> a6963e34c80371011971271f0605324c404e11c7
 -   all 3 models explained only \~30% of variation in calorie burn
 
 -   RMSE remained high (\~27 calories) indicating predictions lack
@@ -277,7 +268,6 @@ Strongest linear predictors were:
 
 -   sets, reps, sugar_g, avg_bpm, and resting_bpm
 
-<<<<<<< HEAD
 ### Why Linear Regression is Not Enough
 
 ::::: columns
