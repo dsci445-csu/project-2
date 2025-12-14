@@ -64,9 +64,9 @@ In addition, a correlation plot provided insight into linear relationships among
 
 ```{=latex}
 \begin{center}
-\includegraphics[width=0.3\textwidth]{corrMatrix.png}
+\includegraphics[width=0.3\textwidth]{img/corrMatrix.png}
 \hspace{0.5cm}
-\includegraphics[width=0.3\textwidth]{corrMatrix copy.png}
+\includegraphics[width=0.3\textwidth]{img/corrMatrix copy.png}
 \end{center}
 ```
 
