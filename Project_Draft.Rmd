@@ -1,0 +1,196 @@
+---
+title: "Project Draft"
+author: "Jessica Reyes, Seth Hillis, Niamh Corrigan, Andi Mellyn"
+date: "2025-12-02"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#libraries
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(tidymodels)
+library(GGally)
+library(ggplot2)
+library(gratia)
+```
+
+```{r}
+data <- read.csv("~/project-2/Data/new/data.csv")
+```
+
+## Question/Problem
+
+What features in our data have significant effects on calorie burns per 30 min, and does diet impact the calorie count during exercise?
+
+## Data Preparation
+
+The data required some preparation to make it read to be fit to a model. we started by determining the features that have the largest impact on the amount of calories burned. We started by making a correlation matrix to get an idea for what features are significant.
+
+![Matrix](corrMatrix.png){width="30%"} ![Matrix](corrMatrix%20copy.png){width="30%"}
+
+Here is a peak at the variable that correlated the most.
+
+| Feature | Correlation with Burns_Calories_per_30_min |
+|----|----|
+| Burns_Calories_per_30_min | 1.000 |
+| Sets | 0.465 |
+| Reps | 0.343 |
+| lean_mass_kg | 0.098 |
+| Weight_kg | 0.091 |
+| Height_m | 0.065 |
+| BMI | 0.063 |
+| Fat_Percentage | 0.054 |
+| Experience_Level | 0.052 |
+| Workout_Frequency_days_per_week | 0.044 |
+| Resting_BPM | 0.038 |
+| Water_Intake_liters | 0.026 |
+| Workout_Pull.ups | 0.014 |
+| Difficulty_Level_Beginner | 0.012 |
+| Workout_Crunches | 0.011 |
+
+## Generalized Additive Model (GAM)
+
+# Exercise Model
+
+This model explains a substantial proportion of the variability in calories burned $(84\%)$, indicating that session duration, resting beats per minute, experience level, and workout type are important predictors.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#libraries
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(tidymodels)
+library(GGally)
+library(ggplot2)
+library(gratia)
+```
+
+```{r}
+data <- read.csv("~/project-2/Data/new/data.csv")
+```
+
+```{r}
+
+exercise_gam <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    experience_level +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam)
+
+par(mfrow = c(1,3))  
+plot(exercise_gam, select = 1, se = TRUE, main = "Effect of Session Duration")
+plot(exercise_gam, select = 2, se = TRUE, main = "Effect of Resting BPM")
+plot(exercise_gam, select = 3, se = TRUE, main = "Effect of Max BPM")
+
+```
+
+```{r}
+draw(exercise_gam, residuals = FALSE)
+```
+
+## Diet Model
+
+Although the model includes several statistically significant smooth terms, it explains only about $23\%$ of the variance in calories burned per 30 minutes. This indicates that dietary variables alone may have limited explanatory power for caloric expenditure in the dataset. The lack of significance for carbohydrates, proteins, and fats was unexpected and may reflect multicollinearity, measurement error, or the dominance of non-dietary drivers of energy expenditure.
+
+```{r}
+diet_gam <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(water_intake) +
+    s(workout_frequency) +
+    s(carbs) +
+    s(proteins) +
+    s(fats) +
+    s(sugar_g) +
+    s(sodium_mg) +
+    s(cholesterol_mg) +
+    daily_meals_frequency +
+    age +
+    gender,
+  data = data,
+  method = "REML"
+)
+
+summary(diet_gam)
+```
+
+```{r}
+draw(diet_gam)
+```
+
+
+## Smooth Terms form GAM
+
+As expected, session duration has a strong, nearly linear positive effect on calories burned. Longer sessions consistently result in more calories burned, showing a positive relationship.
+
+Resting BPM shows a moderate positive relationship with calories burned. As resting BPM increases, calories burned also tend to increase, though the effect is less pronounced than for session duration.
+
+Maximum BPM demonstrates a complex non-linear effect with fluctuations across its range.
+
+These patterns highlight the importance of considering non-linear relationships in understanding how physiological and workout factors influence calories burned.
+
+```{r}
+draw(exercise_gam) 
+```
+
+## Generalized Additive Model (GAM)
+
+# Exercise & Diet Model
+
+Including diet type in the model reveals a statistically significant but very small positive effect on calories burned per 30 minutes. However, the overall model fit remains unchanged, suggesting that diet type does not substantially improve the model's ability to explain variability in calories burned beyond session duration, heart rate measures, experience level, and workout type.
+
+```{r}
+combined_gam2 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) + 
+    s(avg_bpm) + 
+    s(max_bpm) + 
+    s(resting_bpm) + 
+    s(weight) + 
+    s(age) + 
+    s(bmi) + 
+    experience_level + 
+    workout_type +
+    s(water_intake) + 
+    s(workout_frequency) + 
+    daily_meals_frequency +
+    s(carbs) + 
+    s(proteins) + 
+    s(fats) +
+    diet_type,
+  data = data,
+  method = "REML"
+)
+
+summary(combined_gam2)
+```
+
+```{r}
+draw(combined_gam2) 
+```
+
+# Classification Tree / Random Forest
+
+The single decision tree with CP of .01lead to RMSE of 23.670 and explains 41.298% of variance explained, which by itself is not too useful.
+
+//Add model parameters from .fit
+
+//Add graphs here
+
+When the tree are made into a random forest of 500 trees the RMSE drops to 9.844 and explains 89.847% of the variance in the data.
+
+//add dendragram here
+
+
+# Cross Validation
+
