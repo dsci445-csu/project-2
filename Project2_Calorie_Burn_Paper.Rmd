@@ -143,7 +143,7 @@ data <- read.csv("Data/new/data.csv")
 
 \pstart
 
----------- fill in --------
+We began with multiple linear regression as a baseline modeling approach to establish a clear and interpretable benchmark for predicting calories burned in 30 minutes. Three models were fit, one using only exercise predictors, one using only diet predictors, and one combining both sets of variables.
 
 \pstop
 
@@ -230,7 +230,7 @@ rmse_tbl
 
 ```
 
-```{r mergin tables}
+```{r merging tables}
 # merging tables
 
 model_summary <- model_comp %>%
@@ -241,7 +241,11 @@ saveRDS(model_summary, "linear_model_summary.rds")
 
 ```
 
-# Plotting
+\hstart
+
+### Linear Plotting
+
+\hstop
 
 ```{r linear plotting}
 
@@ -284,6 +288,22 @@ diag_ex$qq_plot
 diag_ex$leverage_plot
 
 ```
+
+\hstart
+
+### Linear Regression Interpretation
+
+\hstop
+
+\pstart
+
+The exercise only model explained approximately **29% of the variability** in calorie burn, indicating that workout duration, heart rate measures, repetitions, sets, and workout characteristics capture meaningful but incomplete information. In contrast, the diet only model performed poorly, explaining only about **2.5% of the variability**, suggesting that diet variables alone are insufficient for predicting short-term calorie burn during a workout.
+
+The combined model modestly improved performance, explaining roughly **31% of the variability**, with a slight reduction in RMSE relative to the exercise-only model. While this indicates that diet variables add some information, the improvement is marginal, reinforcing the idea that calorie burn during a workout is driven primarily by exercise predictors.
+
+Diagnostic plots revealed clear violations of linear model assumptions, including heteroskedasticity and non-normal residuals. These patterns suggest that the relationship between predictors and calorie burn is not purely linear and that important nonlinear effects remain unmodeled. As a result, while linear regression provides interpretability and a useful baseline, it is limited in its ability to capture the complex structure present in the data.
+
+\pstop
 
 \hstart
 
