@@ -3,6 +3,9 @@ title: "Group 2: Predicting Calorie Burn"
 author: "Jessica Reyes, Seth Hillis, Niamh Corrigan, Andi Mellyn"
 date: "2025-12-13"
 output: pdf_document
+header_includes:
+- \usepackage{adjustbox}
+- \usepackage{fvextra}
 ---
 
 \colorlet{shadecolor}{gray!10}
@@ -144,6 +147,144 @@ data <- read.csv("Data/new/data.csv")
 
 \pstop
 
+```{r linear data}
+life <- read.csv("Data/clean/life_clean.csv")
+
+# dropping the index column and mutating
+life <- life %>%
+  dplyr::select(-X) %>%
+  dplyr::mutate(across(where(is.character), as.factor))
+
+exer <- c("session_duration_hours", "max_bpm", "avg_bpm", "resting_bpm", "workout_frequency_days_week", "experience_level", "sets", "reps", "workout_type", "difficulty_level", "workout", "target_muscle_group", "body_part", "type_of_muscle")
+
+diet <- c("carbs", "proteins", "fats", "calories", "sugar_g", "sodium_mg", "cholesterol_mg", "meal_type", "diet_type", "daily_meals_frequency", "serving_size_g", "cooking_method", "prep_time_min", "cook_time_min", "pct_carbs", "protein_per_kg", "cal_from_macros", "cal_balance")
+
+combined <- union(exer, diet)
+
+setdiff(exer, names(life))
+setdiff(diet, names(life))
+
+```
+
+```{r linear modeling}
+# modeling
+make_formula <- function(y, xs) {
+  as.formula(paste(y, "~", paste(xs, collapse = " + ")))
+}
+
+f_exer <- make_formula("burns_calories_per_30min", exer)
+f_diet <- make_formula("burns_calories_per_30min", diet)
+f_combined <- make_formula("burns_calories_per_30min", combined)
+
+lm_exer <- lm(f_exer, data = life)
+lm_diet <- lm(f_diet, data = life)
+lm_combined <- lm(f_combined, data = life)
+
+```
+
+```{r glancing}
+
+broom::glance(lm_exer)
+broom::glance(lm_diet)
+broom::glance(lm_combined)
+
+```
+
+```{r combining linear}
+# combine model stats
+
+model_list <- list(
+  exercise = lm_exer,
+  diet = lm_diet,
+  combined = lm_combined
+)
+
+library(broom)
+library(dplyr)
+library(purrr)
+
+model_comp <- model_list %>%
+  imap_dfr(~ glance(.x) %>% mutate(model = .y),.id = NULL) %>%
+  dplyr::select(model, r.squared, adj.r.squared, sigma,          # residual std error 
+                statistic,      # F-statistic 
+                p.value,        # global F-test p-value
+                AIC, BIC) %>%
+  arrange(desc(adj.r.squared))
+
+model_comp
+
+```
+
+```{r rmse}
+rmse <- function(mod) {
+  sqrt(mean(residuals(mod)^2))
+}
+
+rmse_tbl <- model_list %>%
+  imap_dfr(~ tibble(
+    model = .y,
+    rmse  = rmse(.x)
+  ))
+
+rmse_tbl
+
+```
+
+```{r mergin tables}
+# merging tables
+
+model_summary <- model_comp %>%
+  left_join(rmse_tbl, by = "model")
+
+model_summary
+saveRDS(model_summary, "linear_model_summary.rds")
+
+```
+
+# Plotting
+
+```{r linear plotting}
+
+plot_diagnostics <- function(model, title_prefix = "") {
+  
+  aug <- augment(model)
+  
+  p1 <- ggplot(aug, aes(.fitted, .resid)) +
+    geom_point(alpha = 0.4) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    labs(title = paste0(title_prefix, "Residuals vs Fitted"),
+         x = "Fitted Values", y = "Residuals") +
+    theme_minimal()
+  
+  p2 <- ggplot(aug, aes(sample = .resid)) +
+    stat_qq(alpha = 0.4) +
+    stat_qq_line() +
+    labs(title = paste0(title_prefix, "QQ Plot of Residuals"),
+         x = "Theoretical Quantiles", y = "Sample Quantiles") +
+    theme_minimal()
+  
+  p3 <- ggplot(aug, aes(.hat, .cooksd)) +
+    geom_point(alpha = 0.4) +
+    labs(title = paste0(title_prefix, "Leverage vs Cook's Distance"),
+         x = "Leverage (Hat Values)", y = "Cook's Distance") +
+    theme_minimal()
+  
+  list(residuals_plot = p1, qq_plot = p2, leverage_plot = p3)
+}
+
+
+```
+
+```{r linear exercise diagnostics}
+# exercise diagnositic
+
+diag_ex <- plot_diagnostics(lm_exer, "Exercise Model: ")
+diag_ex$residuals_plot
+diag_ex$qq_plot
+diag_ex$leverage_plot
+
+```
+
 \hstart
 
 # Generalized Additive Model (GAM)
@@ -163,7 +304,7 @@ This model explains a substantial proportion of the variability in calories burn
 \pstop
 
 ```{r}
-data <- read.csv("~/project-2/Data/new/data.csv")
+data <- read.csv("Data/new/data.csv")
 exercise_gam <- mgcv::gam(
   calories_burned ~ 
     s(session_duration) +
@@ -203,18 +344,12 @@ draw(exercise_gam)
 
 \hstart
 
-## Generalized Additive Model (GAM)
-
-\hstop
-
-\hstart
-
 # Exercise Model with Calories Burned 30-minute as the Response Variable
 
 \hstop
 
 ```{r}
-data <- read.csv("~/project-2/Data/new/data.csv")
+data <- read.csv("Data/new/data.csv")
 exercise_gam2 <- mgcv::gam(
   caloriesBurned_per30 ~ 
     s(session_duration) +
@@ -252,12 +387,6 @@ While Model 1 effectively captures total caloric expenditure driven largely by s
 
 \hstart
 
-## Generalized Additive Model (GAM)
-
-\hstop
-
-\hstart
-
 # Exercise & Diet Model 
 
 \hstop
@@ -272,7 +401,7 @@ A separate comparison model using total calories burned was also evaluated; howe
 
 \pstop
 
-```{r}
+```{r, eval=FALSE}
 combined_gam3 <- mgcv::gam(
   caloriesBurned_per30 ~ 
     s(session_duration) + 
@@ -297,12 +426,21 @@ combined_gam3 <- mgcv::gam(
 
 
 summary(combined_gam3)
+```
+
+![](./img/combined_gam3_summary.png){fig-align="center"}
+
+```{r, eval=FALSE}
 plot(combined_gam3, pages = 1, se = TRUE)
 ```
 
-```{r}
+![](./img/combined_gam3_plot.png){fig-align="center"}
+
+```{r, eval=FALSE}
 draw(combined_gam3) 
 ```
+
+![](./img/combined_gam3_draw.png){fig-align="center"}
 
 \hstart
 
@@ -310,16 +448,23 @@ draw(combined_gam3)
 
 \hstop
 
-
-
 \pstart
 
 I used tree-based regression to model **Calories Burned per 30 Minutes** against demographic and physiological predictors. These methods are well suited for fitness data, where relationships between variables are often nonlinear and involve interactions that are difficult to specify in advance.
 
+\pstop
+
+\hstart
 
 ### Regression Tree
 
+\hstop
+
+\pstart
+
 I fit a regression tree using the `rpart` package, treating **Burns_Calories_per_30_min** as the response variable. The algorithm partitioned the predictor space into disjoint regions by recursively selecting splits that minimized within-node variance. I controlled model complexity by setting a complexity parameter of **cp = 0.01** and a minimum split size of **minsplit = 20**. These constraints prevented the tree from overfitting and ensured that each split represented a meaningful number of observations.
+
+\pstop
 
 ```{r warning=FALSE, message=FALSE}
 library(rpart)
@@ -347,20 +492,35 @@ tree_model <- rpart(
 rpart.plot(tree_model,cex = .5)
 ```
 
+\pstart
 
 The regression tree also allowed me to calculate feature importance scores, I primarily used these importance scores as a diagnostic tool rather than as a basis for causal interpretation. These rankings identify which physiological variables contribute most to predictive accuracy.
+
+\pstop
 
 ```{r}
 sort(tree_model$variable.importance, decreasing = TRUE)
 ```
+
+\pstart
+
 The resulting tree structure showed that workout intensity and body composition dominate the primary nodes. These upper-level splits indicate that these factors exert the strongest influence on total calorie expenditure. Furthermore, the hierarchical branches reveal clear interaction effects; for instance, the impact of age on calorie burn changes significantly depending on the individual's heart rate. While this rule-based structure provides excellent interpretability, its greedy splitting mechanism makes it sensitive to minor fluctuations in the training data.
 
+\pstop
+
+\hstart
 
 ### Random Forest
 
+\hstop
+
+\pstart
+
 To stabilize these predictions, I implemented a random forest via the `randomForest` package. This ensemble approach constructs multiple decision trees using bootstrap samples and a random subset of predictors at each split. By averaging the results across the entire forest, the model reduces the high variance typical of a single tree while maintaining the ability to capture complex data patterns.
 
-```{r}
+\pstop
+
+```{r, echo=FALSE}
 p <- ncol(train) - 1
 
 set.seed(123)
@@ -376,14 +536,21 @@ rf_model <- readRDS("Data/models/random_forest_model.rds")
 #saveRDS(rf_model, file = "Data/models/random_forest_model.rds")
 
 rf_model
+
+#cat("\\begingroup\\scriptsize\n")
+#cat("\\begin{verbatim}\n")
+#print(summary(rf_model))
+#cat("\\end{verbatim}\n")
+#cat("\\endgroup\n")
+
+
 ```
 
+\pstart
 
 Ultimately, the random forest provides a much more robust framework for predicting calorie burn across diverse exercise conditions, even if it sacrifices the immediate visual simplicity of a single tree.
 
 \pstop
-
-
 
 \hstart
 
@@ -403,10 +570,10 @@ data_split <- initial_split(data, prop = 0.8)
 data_train <- training(data_split)
 data_test <- testing(data_split)
 
-gam_cv_10fold <- vfold_cv(data_train, v = 5)
+gam_cv_10fold <- vfold_cv(data_train, v = 10)
 ```
 
-```{r}
+```{r, eval=FALSE}
 # exercise
 linear_spec <- linear_reg() |>
   set_engine("lm") |>
@@ -427,12 +594,15 @@ exercise_lin_wf <- workflow() |>
   add_recipe(exercise_lin_rec)
 
 exercise_lin_fit <- exercise_lin_wf |>
-  fit_resamples(resamples = gam_cv_10fold, metrics = metric_set(rmse, rsq))
+  fit_resamples(resamples = gam_cv_10fold, 
+                metrics = yardstick::metric_set(yardstick::rmse, yardstick::rsq))
 ```
 
-```{r}
+```{r, eval=FALSE}
 collect_metrics(exercise_lin_fit)
 ```
+
+![](./img/cv_collect_metrics.png){fig-align="center"}
 
 \pstart
 
@@ -442,7 +612,7 @@ Moving on to the GAM model, we see little change between the GAM model before an
 
 \pstop
 
-```{r}
+```{r, eval=FALSE}
 gam_spec <- gen_additive_mod(select_features = tune("alpha")) |>
   set_engine("mgcv") |>
   set_mode("regression")
@@ -461,9 +631,11 @@ exercise_gam_wf <- workflow() |>
   add_model(gam_spec, formula = gam_formula) |>
   add_recipe(exercise_gam_rec)
 
+tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
+
 exercise_gam_fit <- exercise_gam_wf |>
   tune_grid(resamples = gam_cv_10fold, grid = tune_data,
-            metrics = metric_set(rmse, rsq))
+            metrics = yardstick::metric_set(yardstick::rmse, yardstick::rsq))
 
 exercise_gam_final <- finalize_workflow(exercise_gam_wf, 
                                         select_best(exercise_gam_fit, metric = "rmse"))
@@ -474,12 +646,14 @@ exercise_gam_final_fit |>
   augment(new_data = data_test) -> pred
 
 metrics <- pred |>
-  metric_set(rmse, rsq)(
+  yardstick::metric_set(yardstick::rmse, yardstick::rsq)(
     truth = calories_burned,
     estimate = .pred)
 
 metrics
 ```
+
+![](./img/cv_gam_metrics.png){fig-align="center"}
 
 \pstart
 
@@ -489,7 +663,7 @@ Here is the tree cross validation.
 
 \pstop
 
-```{r}
+```{r, eval=FALSE}
 # CV on tree model
 set.seed(445)
 train_cv_10fold <- vfold_cv(train, v = 10)
@@ -504,11 +678,11 @@ tree_wf <- workflow() |>
   add_model(tree_tune_spec) |>
   add_recipe(tree_tune_rec)
 
-tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
+# tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
 
 tune_fit <- tree_wf |>
   tune_grid(resamples = train_cv_10fold, grid = tune_data, 
-            metrics = metric_set(rmse))
+            metrics = yardstick::metric_set(yardstick::rmse))
 
 tree_final <- finalize_workflow(tree_wf, select_best(tune_fit, metric = "rmse"))
 tree_final |>
@@ -518,12 +692,14 @@ tree_final_fit |>
   augment(new_data = test) -> pred
 
 metrics <- pred |>
-  metric_set(rmse, rsq)(
+  yardstick::metric_set(yardstick::rmse, yardstick::rsq)(
     truth = Burns_Calories_per_30_min,
     estimate = .pred)
 
 metrics
 ```
+
+![](./img/cv_tree_metrics.png){fig-align="center"}
 
 \pstart
 
