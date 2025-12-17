@@ -163,7 +163,7 @@ This model explains a substantial proportion of the variability in calories burn
 \pstop
 
 ```{r}
-
+data <- read.csv("~/project-2/Data/new/data.csv")
 exercise_gam <- mgcv::gam(
   calories_burned ~ 
     s(session_duration) +
@@ -177,12 +177,11 @@ exercise_gam <- mgcv::gam(
 
 summary(exercise_gam)
 plot(exercise_gam, pages = 1)
-
 ```
 
 \hstart
 
-## Smooth Terms form GAM
+## Smooth Terms form GAM Model 1
 
 \hstop
 
@@ -194,7 +193,7 @@ Resting BPM shows a moderate positive relationship with calories burned. As rest
 
 Maximum BPM demonstrates a complex non-linear effect with fluctuations across its range.
 
-These patterns highlight the importance of considering non-linear relationships in understanding how phsiological and workout factors influence calories burned.
+These patterns highlight the importance of considering non-linear relationships in understanding how physiological and workout factors influence calories burned.
 
 \pstop
 
@@ -204,19 +203,78 @@ draw(exercise_gam)
 
 \hstart
 
-## Exercise & Diet Model (GAM)
+## Generalized Additive Model (GAM)
+
+\hstop
+
+\hstart
+
+# Exercise Model with Calories Burned 30-minute as the Response Variable
+
+\hstop
+
+```{r}
+data <- read.csv("~/project-2/Data/new/data.csv")
+exercise_gam2 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    s(avg_bpm) +
+    experience_level +
+    expected_burn +
+    pct_maxhr +
+    workout_frequency +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam2)
+plot(exercise_gam2, pages = 1)
+```
+
+\hstart
+
+## Smooth Terms form GAM Model 2
 
 \hstop
 
 \pstart
 
-Including diet type in the model reveals a statistically significant but very small positive effect on calories burned. However, the overall model fit remains unchanged, suggesting that diet type does not substantially improve the model's ability to explain variability in calories burned beyond session duration, heart rate measures, experience level, and workout type.
+The second model extends the initial GAM by modeling calories burned per 30 minutes rather than total calories, and by incorporating additional variables. This allows for more standardized and interpretable outcome across workouts of different lengths. 
+
+Model 2 shows a substantial improvement in explanatory power compared to Model 1. The adjusted $R^2$ increases from 0.84 to 0.96,  and deviance explained rises from $84\%$ to $96.4\%$, indicating that the additional predictors are refined response variables capture much more of the variability in caloric expenditure. The lower GCV score also suggests a better model fit.
+
+While Model 1 effectively captures total caloric expenditure driven largely by session duration, Model 2 provides a more detailed and physiologically meaningful explanation of calorie burn rate. The inclusion of average heart rate, expected burn, and intensity measures allows the model to uncover complex non-linear patterns and delivers a stronger fit. Overall, Model 2 offers a stronger and more interpretable framework for understanding how fitness, intenstiy, and cardiovascular response shape caloric efficiency during workouts.
+
+\pstop
+
+\hstart
+
+## Generalized Additive Model (GAM)
+
+\hstop
+
+\hstart
+
+# Exercise & Diet Model 
+
+\hstop
+
+\pstart
+
+Including diet type in the model yields a statistically significant but very small positive effect on calories burned per 30 minutes.
+
+Despite this significance, overall model fit remains unchanged, indicating that diet type contributes minimal additional explanatory power beyond established predictors such as session duration, heart rate measures, experience level, and workout characteristics. 
+
+A separate comparison model using total calories burned was also evaluated; however, because the results were identical, it was not included.
 
 \pstop
 
 ```{r}
-combined_gam2 <- mgcv::gam(
-  calories_burned ~ 
+combined_gam3 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
     s(session_duration) + 
     s(avg_bpm) + 
     s(max_bpm) + 
@@ -237,12 +295,12 @@ combined_gam2 <- mgcv::gam(
   method = "REML"
 )
 
-summary(combined_gam2)
-plot(combined_gam2, pages = 1, se = TRUE)
+summary(combined_gam3)
+plot(combined_gam3, pages = 1, se = TRUE)
 ```
 
 ```{r}
-draw(combined_gam2) 
+draw(combined_gam3) 
 ```
 
 \hstart
