@@ -735,7 +735,15 @@ We see that cross validation performed the best on the tree model. $R^2$ increas
 
 \pstart
 
------------------ fill in ---------------
+In this project, we investigated calorie burn during a 30-minute workout using a large, complex dataset and a sequence of increasingly flexible modeling approaches. We began our analysis with exploratory data analysis, which revealed strong associations between calorie burn and exercise related variables such as session duration, heart rate measures, repetitions, and sets, while diet related variables showed much weaker linear relationships.
+
+Linear regression models provided a useful baseline, demonstrating that exercise predictors account for substantially more variation in calorie burn than diet predictors. However, the clear diagnostic violations highlighted the limitations of linear assumptions in this context.
+
+Generalized additive models (GAMs) substantially improved performance by capturing nonlinear relationships for calorie burn. When modeling calories burned per 30 minutes, the GAM achieved a dramatic increase in modeling power, explaining over **96% of the variability**, and revealed meaningful nonlinear effects of session duration, heart rate measures, and workout intensity. While diet variables were statistically significant in the combined GAM, their contribution to overall model fit was minimal, reinforcing the exercise related predictors' dominance in the models.
+
+Tree-based methods further supported these findings. The regression tree identified workout intensity and body composition as primary drivers of calorie burn. The random forest provided the strongest predictive performance overall, explaining over **90% of the variance**. These models demonstrated that calorie burn is governed by complex interactions and nonlinear effects that are difficult to capture with parametric models alone.
+
+Across all the models, cross-validation results showed that increasing model flexibility improved predictive accuracy without substantial overfitting. Taken together, our findings indicate that calorie burn during short workout sessions is primarily determined by exercise intensity, workout structure, with diet playing a fairly small role. This work highlights the importance of using flexible modeling approaches when analyzing high-dimensional fitness data and underscores the value of predictive performance in applied machine learning research.
 
 \pstop
 
