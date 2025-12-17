@@ -295,6 +295,7 @@ combined_gam3 <- mgcv::gam(
   method = "REML"
 )
 
+
 summary(combined_gam3)
 plot(combined_gam3, pages = 1, se = TRUE)
 ```
@@ -305,23 +306,84 @@ draw(combined_gam3)
 
 \hstart
 
-# Classification Tree / Random Forest
+# Regression Tree / Random Forest
 
 \hstop
 
+
+
 \pstart
 
-The single decision tree with CP of .01lead to RMSE of 23.670 and explains 41.298% of variance explained, which by itself is not too useful.
+I used tree-based regression to model **Calories Burned per 30 Minutes** against demographic and physiological predictors. These methods are well suited for fitness data, where relationships between variables are often nonlinear and involve interactions that are difficult to specify in advance.
 
-//Add model parameters from .fit
 
-//Add graphs here
+### Regression Tree
 
-When the tree are made into a random forest of 500 trees the RMSE drops to 9.844 and explains 89.847% of the variance in the data.
+I fit a regression tree using the `rpart` package, treating **Burns_Calories_per_30_min** as the response variable. The algorithm partitioned the predictor space into disjoint regions by recursively selecting splits that minimized within-node variance. I controlled model complexity by setting a complexity parameter of **cp = 0.01** and a minimum split size of **minsplit = 20**. These constraints prevented the tree from overfitting and ensured that each split represented a meaningful number of observations.
 
-//add dendragram here
+```{r warning=FALSE, message=FALSE}
+library(rpart)
+library(randomForest)
+library(rpart.plot)
+data_factor <- read.csv("./Data/clean/CleanLifeDataFactor.csv")
+
+n <- nrow(data_factor)
+train_idx <- sample(seq_len(n), size = 0.8 * n)
+
+train <- data_factor[train_idx, ]
+test  <- data_factor[-train_idx, ]
+target <- "Burns_Calories_per_30_min"
+
+tree_model <- rpart(
+  Burns_Calories_per_30_min ~ .,
+  data   = train,
+  method = "anova",   # regression tree
+  control = rpart.control(
+    cp = 0.01,        # complexity parameter
+    minsplit = 20
+  )
+)
+
+rpart.plot(tree_model,cex = .5)
+```
+
+
+The regression tree also allowed me to calculate feature importance scores, I primarily used these importance scores as a diagnostic tool rather than as a basis for causal interpretation. These rankings identify which physiological variables contribute most to predictive accuracy.
+
+```{r}
+sort(tree_model$variable.importance, decreasing = TRUE)
+```
+The resulting tree structure showed that workout intensity and body composition dominate the primary nodes. These upper-level splits indicate that these factors exert the strongest influence on total calorie expenditure. Furthermore, the hierarchical branches reveal clear interaction effects; for instance, the impact of age on calorie burn changes significantly depending on the individual's heart rate. While this rule-based structure provides excellent interpretability, its greedy splitting mechanism makes it sensitive to minor fluctuations in the training data.
+
+
+### Random Forest
+
+To stabilize these predictions, I implemented a random forest via the `randomForest` package. This ensemble approach constructs multiple decision trees using bootstrap samples and a random subset of predictors at each split. By averaging the results across the entire forest, the model reduces the high variance typical of a single tree while maintaining the ability to capture complex data patterns.
+
+```{r}
+p <- ncol(train) - 1
+
+set.seed(123)
+rf_model <- readRDS("Data/models/random_forest_model.rds")
+
+#rf_model <- randomForest(
+#  Burns_Calories_per_30_min ~ .,
+#  data  = train,
+#  ntree = 500,
+#  mtry  = floor(sqrt(p)),
+#  importance = TRUE
+#)
+#saveRDS(rf_model, file = "Data/models/random_forest_model.rds")
+
+rf_model
+```
+
+
+Ultimately, the random forest provides a much more robust framework for predicting calorie burn across diverse exercise conditions, even if it sacrifices the immediate visual simplicity of a single tree.
 
 \pstop
+
+
 
 \hstart
 
