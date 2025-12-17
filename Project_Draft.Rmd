@@ -156,12 +156,12 @@ combined_gam3 <- mgcv::gam(
   method = "REML"
 )
 
-summary(combined_gam2)
-plot(combined_gam2, pages = 1, se = TRUE)
+summary(combined_gam3)
+plot(combined_gam3, pages = 1, se = TRUE)
 ```
 
 ```{r}
-draw(combined_gam2) 
+draw(combined_gam3) 
 ```
 
 # Classification Tree / Random Forest
