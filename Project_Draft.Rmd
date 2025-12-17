@@ -53,30 +53,14 @@ Here is a peak at the variable that correlated the most.
 
 ## Generalized Additive Model (GAM)
 
-# Exercise Model
+# Exercise Model with Calories Burned as the Response Variable
 
 This model explains a substantial proportion of the variability in calories burned $(84\%)$, indicating that session duration, resting beats per minute, experience level, and workout type are important predictors.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-#libraries
-library(tidyverse)
-library(caret)
-library(mgcv)
-library(tidymodels)
-library(GGally)
-library(ggplot2)
-library(gratia)
-```
-
 ```{r}
 data <- read.csv("~/project-2/Data/new/data.csv")
-```
-
-```{r}
-
 exercise_gam <- mgcv::gam(
-  caloriesBurned_per30 ~ 
+  calories_burned ~ 
     s(session_duration) +
     s(resting_bpm) +
     s(max_bpm) +
@@ -87,49 +71,10 @@ exercise_gam <- mgcv::gam(
 )
 
 summary(exercise_gam)
-
-par(mfrow = c(1,3))  
-plot(exercise_gam, select = 1, se = TRUE, main = "Effect of Session Duration")
-plot(exercise_gam, select = 2, se = TRUE, main = "Effect of Resting BPM")
-plot(exercise_gam, select = 3, se = TRUE, main = "Effect of Max BPM")
+plot(exercise_gam, pages = 1)
 
 ```
-
-```{r}
-draw(exercise_gam, residuals = FALSE)
-```
-
-## Diet Model
-
-Although the model includes several statistically significant smooth terms, it explains only about $23\%$ of the variance in calories burned per 30 minutes. This indicates that dietary variables alone may have limited explanatory power for caloric expenditure in the dataset. The lack of significance for carbohydrates, proteins, and fats was unexpected and may reflect multicollinearity, measurement error, or the dominance of non-dietary drivers of energy expenditure.
-
-```{r}
-diet_gam <- mgcv::gam(
-  caloriesBurned_per30 ~ 
-    s(water_intake) +
-    s(workout_frequency) +
-    s(carbs) +
-    s(proteins) +
-    s(fats) +
-    s(sugar_g) +
-    s(sodium_mg) +
-    s(cholesterol_mg) +
-    daily_meals_frequency +
-    age +
-    gender,
-  data = data,
-  method = "REML"
-)
-
-summary(diet_gam)
-```
-
-```{r}
-draw(diet_gam)
-```
-
-
-## Smooth Terms form GAM
+## Smooth Terms form GAM Model 1
 
 As expected, session duration has a strong, nearly linear positive effect on calories burned. Longer sessions consistently result in more calories burned, showing a positive relationship.
 
@@ -137,20 +82,59 @@ Resting BPM shows a moderate positive relationship with calories burned. As rest
 
 Maximum BPM demonstrates a complex non-linear effect with fluctuations across its range.
 
-These patterns highlight the importance of considering non-linear relationships in understanding how physiological and workout factors influence calories burned.
+These patterns highlight the importance of considering non-linear relationships in understanding how phsiological and workout factors influence calories burned.
+
+## Exercise Model with Calories Burned 30-minute as the Response Variable
 
 ```{r}
+data <- read.csv("~/project-2/Data/new/data.csv")
+exercise_gam2 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    s(avg_bpm) +
+    experience_level +
+    expected_burn +
+    pct_maxhr +
+    workout_frequency +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam2)
+plot(exercise_gam2, pages = 1)
+```
+## Comparison between GAM Model 1 & 2
+
+The second model extends the initial GAM by modeling calories burned per 30 minutes rather than total calories, and by incorporating additional variables. This allows for more standardized and interpretable outcome across workouts of different lengths. 
+
+Model 2 shows a substantial improvement in explanatory power compared to Model 1. The adjusted $R^2$ increases from 0.84 to 0.96,  and deviance explained rises from $84\%$ to $96.4\%$, indicating that the additional predictors are refined response variables capture much more of the variability in caloric expenditure. The lower GCV score also suggests a better model fit.
+
+While Model 1 effectively captures total caloric expenditure driven largely by session duration, Model 2 provides a more detailed and physiologically meaningful explanation of calorie burn rate. The inclusion of average heart rate, expected burn, and intensity measures allows the model to uncover complex non-linear patterns and delivers a stronger fit. Overall, Model 2 offers a stronger and more interpretable framework for understanding how fitness, intenstiy, and cardiovascular response shape caloric efficiency during workouts.
+
+## Exercise GAM Model 1 Variables
+```{r}
 draw(exercise_gam) 
+```
+
+## Exercise GAM Model 2 Variables
+```{r}
+draw(exercise_gam2) 
 ```
 
 ## Generalized Additive Model (GAM)
 
 # Exercise & Diet Model
 
-Including diet type in the model reveals a statistically significant but very small positive effect on calories burned per 30 minutes. However, the overall model fit remains unchanged, suggesting that diet type does not substantially improve the model's ability to explain variability in calories burned beyond session duration, heart rate measures, experience level, and workout type.
+Including diet type in the model yields a statistically significant but very small positive effect on calories burned per 30 minutes.
 
+Despite this significance, overall model fit remains unchanged, indicating that diet type contributes minimal additional explanatory power beyond established predictors such as session duration, heart rate measures, experience level, and workout characteristics. 
+
+A separate comparison model using total calories burned was also evaluated; however, because the results were identical, it was not included.
 ```{r}
-combined_gam2 <- mgcv::gam(
+combined_gam3 <- mgcv::gam(
   caloriesBurned_per30 ~ 
     s(session_duration) + 
     s(avg_bpm) + 
@@ -173,6 +157,7 @@ combined_gam2 <- mgcv::gam(
 )
 
 summary(combined_gam2)
+plot(combined_gam2, pages = 1, se = TRUE)
 ```
 
 ```{r}
