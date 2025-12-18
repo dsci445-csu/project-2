@@ -2,6 +2,17 @@
 **Group 2 Project for DSCI445 @ CSU**
 **Names:Niamh Corrigan, Seth Hillis, Andi Mellyn, Jessica Reyes**
 
+# Notes for Andee
+Our final paper is the Rmd file titled "Project2_Calorie_Burn_Paper.Rmd". You will find the code and data is read into it. 
+Some of the code chunks have been set to eval=FALSE and their outputs are pulled in as image attachments. 
+The purpose was to reduce the running and knitting time down to less than a minute.
+You can also find the original code files for the different models in the main github branch if you would like to run them separately. 
+
+Those files are:
+Linear_Regression.Rmd
+GAM.Rmd
+cv.Rmd
+
 Build 3 models: (Diet, exercise, diet & exercise) - Response variable Burns Calories(per 30 minutes)
 
 ## Data
