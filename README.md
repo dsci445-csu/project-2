@@ -11,7 +11,10 @@ You can also find the original code files for the different models in the main g
 Those files are:
 - Linear_Regression.Rmd
 - GAM.Rmd
+- model_testing.qmd
 - cv.Rmd
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Build 3 models: (Diet, exercise, diet & exercise) - Response variable Burns Calories(per 30 minutes)
 
