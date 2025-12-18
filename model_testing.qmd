@@ -1,0 +1,143 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+#install.packages("rpart.plot")
+#install.packages("randomForest")
+library(rpart)
+library(randomForest)
+library(rpart.plot)
+```
+
+```{r}
+data_dummy <- read.csv("../Data/clean/CleanLifeDataDummy.csv")
+data_factor <- read.csv("../Data/clean/CleanLifeDataFactor.csv")
+data_dummy[] <- lapply(data_dummy, function(col) {
+  if (!is.numeric(col)) as.numeric(factor(col)) else col
+})
+```
+
+```{r}
+cor_matrix <- cor(data_dummy, use = "pairwise.complete.obs", method = "pearson")
+sort(cor_matrix["Burns_Calories_per_30_min", ], decreasing = TRUE)
+```
+
+```{r}
+sort(round(cor_matrix["Burns_Calories_per_30_min", ], 3), decreasing = TRUE)
+```
+
+```{r}
+set.seed(445)
+
+n <- nrow(data_factor)
+train_idx <- sample(seq_len(n), size = 0.8 * n)
+
+train <- data_factor[train_idx, ]
+test  <- data_factor[-train_idx, ]
+target <- "Burns_Calories_per_30_min"
+
+tree_model <- rpart(
+  Burns_Calories_per_30_min ~ .,
+  data   = train,
+  method = "anova",   # regression tree
+  control = rpart.control(
+    cp = 0.01,        # complexity parameter (pruning strength)
+    minsplit = 20
+  )
+)
+
+# Look at the tree
+printcp(tree_model)
+rpart.plot(tree_model)
+```
+
+```{r}
+tree_pred <- predict(tree_model, newdata = test)
+
+# RMSE and R^2 by hand
+rmse_tree <- sqrt(mean((tree_pred - test$Burns_Calories_per_30_min)^2))
+sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
+sse <- sum( (test$Burns_Calories_per_30_min - tree_pred)^2 )
+r2_tree <- 1 - sse/sst
+
+rmse_tree
+r2_tree
+```
+
+```{r}
+p <- ncol(train) - 1
+
+set.seed(445)
+rf_model <- randomForest(
+  Burns_Calories_per_30_min ~ .,
+  data  = train,
+  ntree = 500,
+  mtry  = floor(sqrt(p)),
+  importance = TRUE
+)
+
+rf_model
+```
+
+```{r}
+rf_pred <- predict(rf_model, newdata = test)
+
+rmse_rf <- sqrt(mean((rf_pred - test$Burns_Calories_per_30_min)^2))
+sst <- sum( (test$Burns_Calories_per_30_min - mean(test$Burns_Calories_per_30_min))^2 )
+sse <- sum( (test$Burns_Calories_per_30_min - rf_pred)^2 )
+r2_rf <- 1 - sse/sst
+
+rmse_rf
+r2_rf
+
+```
+
+```{r}
+# CV on tree model
+train_cv_10fold <- vfold_cv(train, v = 10)
+
+tree_tune_spec <- decision_tree(cost_complexity = tune("alpha")) |>
+  set_engine("rpart") |>
+  set_mode("regression")
+
+tree_tune_rec <- recipe(Burns_Calories_per_30_min ~ ., data = train)
+
+tree_wf <- workflow() |>
+  add_model(tree_tune_spec) |>
+  add_recipe(tree_tune_rec)
+
+tune_data <- data.frame(alpha = 10^seq(-3, -1, length.out = 10))
+
+tune_fit <- tree_wf |>
+  tune_grid(resamples = train_cv_10fold, grid = tune_data, 
+            metrics = metric_set(rmse))
+
+tune_fit |>
+  autoplot()
+
+```
+
+```{r}
+tree_final <- finalize_workflow(tree_wf, select_best(tune_fit, metric = "rmse"))
+tree_final |>
+  fit(data = train) -> tree_final_fit
+
+tree_final_fit |>
+  augment(new_data = test) -> pred
+
+metrics <- pred |>
+  metric_set(rmse, mae, rsq)(
+    truth = Burns_Calories_per_30_min,
+    estimate = .pred
+  )
+
+metrics
+
+```
+
+```{r}
+
+```
