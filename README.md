@@ -9,9 +9,9 @@ The purpose was to reduce the running and knitting time down to less than a minu
 You can also find the original code files for the different models in the main github branch if you would like to run them separately. 
 
 Those files are:
-Linear_Regression.Rmd
-GAM.Rmd
-cv.Rmd
+- Linear_Regression.Rmd
+- GAM.Rmd
+- cv.Rmd
 
 Build 3 models: (Diet, exercise, diet & exercise) - Response variable Burns Calories(per 30 minutes)
 
