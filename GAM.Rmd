@@ -1,0 +1,104 @@
+---
+title: "GAM Model"
+author: "Jessica Reyes"
+date: "2025-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#libraries
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(tidymodels)
+library(GGally)
+library(ggplot2)
+library(gratia)
+```
+
+```{r}
+data <- read.csv("~/project-2/Data/new/data.csv")
+head(data)
+```
+
+
+# Exercise Model
+
+```{r}
+data <- read.csv("Data/new/data.csv")
+exercise_gam <- mgcv::gam(
+  calories_burned ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    experience_level +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam)
+plot(exercise_gam, pages = 1)
+```
+
+## Smooth Terms form GAM Model 1
+
+```{r}
+draw(exercise_gam) 
+```
+
+# Exercise Model with Calories Burned 30-minute as the Response Variable
+
+```{r}
+data <- read.csv("Data/new/data.csv")
+exercise_gam2 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) +
+    s(resting_bpm) +
+    s(max_bpm) +
+    s(avg_bpm) +
+    experience_level +
+    expected_burn +
+    pct_maxhr +
+    workout_frequency +
+    workout_type,
+  data = data,
+  method = "GCV.Cp"
+)
+
+summary(exercise_gam2)
+plot(exercise_gam2, pages = 1)
+```
+
+# Exercise & Diet Model 
+
+```{r, eval=FALSE}
+combined_gam3 <- mgcv::gam(
+  caloriesBurned_per30 ~ 
+    s(session_duration) + 
+    s(avg_bpm) + 
+    s(max_bpm) + 
+    s(resting_bpm) + 
+    s(weight) + 
+    s(age) + 
+    s(bmi) + 
+    experience_level + 
+    workout_type +
+    s(water_intake) + 
+    s(workout_frequency) + 
+    daily_meals_frequency +
+    s(carbs) + 
+    s(proteins) + 
+    s(fats) +
+    diet_type,
+  data = data,
+  method = "REML"
+)
+
+
+summary(combined_gam3)
+```
+
+
+
