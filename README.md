@@ -5,4 +5,6 @@ Test push commit
 install.packages("usethis")
 usethis::create_github_token()
 
-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
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"git config --global user.name "Your Name"
