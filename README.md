@@ -8,3 +8,6 @@ usethis::create_github_token()
 
   git config --global user.email "you@example.com"
   git config --global user.name "Your Name"git config --global user.name "Your Name"
+
+
+test
