@@ -17,13 +17,12 @@ library(rpart.plot) ## plotting trees
 library(randomForest)
 #install.packages("ranger")
 library(ranger)
-#library(vip) ## bagging 
-install.packages("vip")
+library(vip) ## bagging 
 ```
 
 ```{r, include=FALSE}
 #cleaning the data and dividing it into training and test
-PCOS_infertility <- read_csv("/Users/nicolamalatesta/CSU/FALL 2026/DSCI 445 /PROJECT/PCOS_infertility.csv")
+PCOS_infertility <- read_csv("/data/accounts/fa26/nicolamalatestafa26/DSCI445/dsci445project/PCOS_infertility.csv")
 
 PCOS_cleaned <- drop_na(PCOS_infertility)
 PCOS_cleaned$PCOS <- as.factor(PCOS_cleaned$`PCOS (Y/N)`)
@@ -69,7 +68,7 @@ augment(tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_cl
 
 ```
 
-Accuracy of around 66.176%, so a test error rate of around 33.824%. Not great...
+Accuracy of around 62.5%, so a test error rate of around 37.5%. Not great...
 
 
 ## Pruned Tree & Determining Tree Complexity via 10-fold CV 
