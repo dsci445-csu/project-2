@@ -1,0 +1,150 @@
+---
+title: "DSCI 445 - Project - PCOS"
+author: "Sydney Gansberg, Sherel Gonzales,  Sarah Haywood, Nicola Malatesta"
+output: pdf_document
+---
+
+
+```{r, include=FALSE}
+#libraries + reproducibility
+set.seed(44)
+library(ISLR) ## data package
+library(tidyverse) ## data manipulation
+library(tidymodels) ## tidy modeling
+library(knitr) ## tables
+library(rpart.plot) ## plotting trees
+#install.packages("randomForest")
+library(randomForest)
+#install.packages("ranger")
+library(ranger)
+#library(vip) ## bagging 
+install.packages("vip")
+```
+
+```{r, include=FALSE}
+#cleaning the data and dividing it into training and test
+PCOS_infertility <- read_csv("/Users/nicolamalatesta/CSU/FALL 2026/DSCI 445 /PROJECT/PCOS_infertility.csv")
+
+PCOS_cleaned <- drop_na(PCOS_infertility)
+PCOS_cleaned$PCOS <- as.factor(PCOS_cleaned$`PCOS (Y/N)`)
+PCOS_cleaned$`PCOS (Y/N)` <- NULL
+
+
+
+#splits
+PCOS_splits <- initial_split(PCOS_cleaned, prop=0.75)
+PCOS_training <- training(PCOS_splits)
+PCOS_testing <- testing(PCOS_splits)
+```
+
+
+
+## Fitting the Decision Tree model: Non-Pruned
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+#spec
+tree_spec <- decision_tree(
+  mode="classification",
+  engine="rpart")
+
+#recipe
+tree_recipe <- recipe(PCOS ~ ., data=PCOS_training)
+
+tree_wf <- workflow() |> add_recipe(tree_recipe) |> add_model(tree_spec) 
+
+tree_fit <- fit(tree_wf, data=PCOS_training)
+
+#metrics
+metric <- metric_set(accuracy)
+tree_pred <- augment(tree_fit, new_data = PCOS_testing)
+tree_pred |> metric(truth=PCOS, estimate=.pred_class) 
+
+#plot
+tree_fit |>
+  extract_fit_engine() |>
+  rpart.plot(roundint=FALSE)
+
+#calculating the test error 
+augment(tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
+
+
+```
+
+Accuracy of around 66.176%, so a test error rate of around 33.824%. Not great...
+
+
+## Pruned Tree & Determining Tree Complexity via 10-fold CV 
+
+```{r, echo=FALSE}
+#tree recipe
+tree_recipe2 <- recipe(PCOS ~ ., data=PCOS_training)
+
+
+tree_engine2 <- decision_tree(
+  mode="classification",
+  engine="rpart", 
+  cost_complexity = tune()) #this is the complexity to be chosen
+
+tree_wf2 <- workflow() |> add_recipe(tree_recipe2) |> add_model(tree_engine2) 
+
+#degree to choose from 
+cost_complexity_grid <- grid_regular(
+  cost_complexity(range = c(-5, -1)), 
+  levels = 40
+)
+
+#folds
+set.seed(44)
+cv_2 <- vfold_cv(PCOS_training, v=10)
+
+
+final_tree_cv<- tree_wf2 |> tune_grid(resamples=cv_2, 
+                  grid=cost_complexity_grid,
+                  metrics=metric_set(accuracy))
+
+
+best_alpha <- select_best(final_tree_cv, metric="accuracy")
+best_alpha
+
+#finally fitting with alpha= 0.00943
+final_tree_wf <- finalize_workflow(tree_wf2, best_alpha)
+
+final_tree_fit <- fit(final_tree_wf, data=PCOS_cleaned)
+
+final_tree_fit |>
+  extract_fit_engine() |>
+  rpart.plot(roundint=FALSE)
+
+
+#calculating the test error 
+augment(final_tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
+
+final_tree_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimate=.pred_class)
+
+
+```
+With using 10-fold CV to choose the exact level of complexity, then the test error is of around $1-0.91176=0.08824$, which is way lower than the non-pruned tree done above.  
+
+
+
+
+## Bagging Tree
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#spec 
+bagging_spec <- rand_forest(trees=500) |> ## automatically grabs the number of columns
+  set_engine("ranger", importance="impurity") |> ## save information to plot importance
+  set_mode("classification")
+
+#recipe stays as is for the tree model
+bagging_recipe <- recipe(PCOS ~ ., data=PCOS_training)
+
+bagging_wf <- workflow() |> add_recipe(bagging_recipe) |> add_model(bagging_spec) 
+
+bagging_fit <- fit(bagging_wf, data=PCOS_training)
+
+# importance
+bagging_fit |> 
+  extract_fit_parsnip() |>
+  vip(num_features = 20)
+
+```
+
