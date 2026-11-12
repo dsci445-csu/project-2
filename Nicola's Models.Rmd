@@ -22,9 +22,9 @@ library(vip) ## bagging
 
 ```{r, include=FALSE}
 #cleaning the data and dividing it into training and test
-PCOS_infertility <- read_csv("/data/accounts/fa26/nicolamalatestafa26/DSCI445/dsci445project/PCOS_infertility.csv")
+PCOS_csv <- read_csv("/data/accounts/fa26/nicolamalatestafa26/DSCI445/dsci445project/PCOS.csv")
 
-PCOS_cleaned <- drop_na(PCOS_infertility)
+PCOS_cleaned <- drop_na(PCOS_csv)
 PCOS_cleaned$PCOS <- as.factor(PCOS_cleaned$`PCOS (Y/N)`)
 PCOS_cleaned$`PCOS (Y/N)` <- NULL
 PCOS_cleaned$`Sl. No` <- NULL
@@ -70,7 +70,7 @@ augment(tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_cl
 
 ```
 
-Accuracy of around 63.23%, so a test error rate of around 36.77%. Not great...
+Accuracy of around 79.25%, so a test error rate of around 25%. Not great...
 
 
 ## Pruned Tree & Determining Tree Complexity via 10-fold CV 
@@ -123,7 +123,7 @@ final_tree_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimat
 
 
 ```
-With using 10-fold CV to choose the exact level of complexity, then the test error is of around $1-0.9044=0.0956$, which is way lower than the non-pruned tree done above.  
+With using 10-fold CV to choose the exact level of complexity, then the test error is of around $1-0.962963=0.037$, which is way lower than the non-pruned tree done above.  
 
 
 
@@ -148,4 +148,6 @@ bagging_fit |>
   vip(num_features = 20)
 
 ```
+
+
 
