@@ -86,3 +86,14 @@ dropped_predictors <- lasso_coefficients |>
 kept_predictors
 dropped_predictors
 ```
+```{r}
+lasso_pred <- augment(final_lasso_fit, new_data = PCOS_testing)
+
+lasso_metrics <- metric_set(accuracy, roc_auc)(lasso_pred, truth = PCOS, estimate = .pred_class, .pred_1)
+
+lasso_metrics
+
+lasso_pred |>
+  conf_mat(truth = PCOS, estimate = .pred_class)
+
+```
