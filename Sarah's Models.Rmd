@@ -1,0 +1,37 @@
+---
+title: "Sarah's Models"
+output: pdf_document
+---
+```{r, include=FALSE}
+#libraries + reproducibility
+set.seed(44)
+library(ISLR) ## data package
+library(tidyverse) ## data manipulation
+library(tidymodels) ## tidy modeling
+library(knitr) ## tables
+library(rpart.plot) ## plotting trees
+#install.packages("randomForest")
+library(randomForest)
+#install.packages("ranger")
+library(ranger)
+library(vip) ## bagging 
+```
+
+```{r, include=FALSE}
+#cleaning the data and dividing it into training and test
+PCOS_csv <- read_csv("/data/accounts/fa26/sarahhaywoodfa26/project-2/PCOS.csv")
+
+PCOS_cleaned <- drop_na(PCOS_csv)
+PCOS_cleaned$PCOS <- as.factor(PCOS_cleaned$`PCOS (Y/N)`)
+PCOS_cleaned$`PCOS (Y/N)` <- NULL
+PCOS_cleaned$`Sl. No` <- NULL
+PCOS_cleaned$`Patient File No.` <- NULL
+
+
+
+#splits
+PCOS_splits <- initial_split(PCOS_cleaned, prop=0.75)
+PCOS_training <- training(PCOS_splits)
+PCOS_testing <- testing(PCOS_splits)
+```
+
