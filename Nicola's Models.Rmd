@@ -1,6 +1,6 @@
 ---
 title: "DSCI 445 - Project - PCOS"
-author: "Sydney Gansberg, Sherel Gonzales,  Sarah Haywood, Nicola Malatesta"
+author: "Sydney Gansberg, Sherel Gonzales, Sarah Haywood, Nicola Malatesta"
 output: pdf_document
 ---
 
@@ -29,16 +29,23 @@ PCOS_cleaned$PCOS <- as.factor(PCOS_cleaned$`PCOS (Y/N)`)
 PCOS_cleaned$`PCOS (Y/N)` <- NULL
 PCOS_cleaned$`Sl. No` <- NULL
 PCOS_cleaned$`Patient File No.` <- NULL
-
-
-
+  
 #splits
 PCOS_splits <- initial_split(PCOS_cleaned, prop=0.75)
 PCOS_training <- training(PCOS_splits)
 PCOS_testing <- testing(PCOS_splits)
 ```
 
+## Why a Tree-Based Model? 
+Tree-Based models are non-parametric and supervised set of methods that we can use for both regression and classification as in this case).  
+Tree models segments the predictor space into simpler regions, and within each region, they predict the outcome based on the mode of training observations in the region to which it belongs. Our first reason behind fitting a tree is that they are simple to fit, simple to interpret and, most importantly, the results are easy to communicate to an outside viewer (such as a doctor or a nurse in this case).   
 
+## Building a Classification Tree
+As noticed above, building a classification tree starts with splitting up the space in cleaver ways. While for regression trees we could use Recursive Binary Splitting: pick the splitting that minimizes Residual Sum of Squares (RSS), for classification we need to use, because of the non-continuous nature of the outcome, either of these 2 methods:  
+- **Gini Index**: $G= \sum_{k=1}^K \hat p_{mk}(1-\hat p_{mk})$, which is a variation of a Bernoulli trial's variance ($p(1-p)$) and measures the total variance across the $k$ classes. A low $G$ value (when $\hat p_{mk} \approx 0,\text{or} \approx1$) indicates that no terminal node is primarily including only observations from one class, while a large $G$ value (when $\hat p_{mk} \approx 0.5$) indicates that that terminal node includes primarily only observation from that class (purer node).  
+- **Entropy**: $D=- \sum_{k=1}^K \hat p_{mk} log (\hat p_{mk})$. A low $D$ (when $\hat p_{mk} \approx 0$) implies purer nodes, a large $D$ (when $\hat p_{mk} \approx 0.5$) implies that no node contain primarily observations from that one class $k$.    
+One big *caveat* is that these measures to evaluate the quality of the split (either Gini or Entropy) are very useful in cases when the data is balanced.  In our case, the percentage of `PCOS=1` over the total is around 32.65\%, so either measures may give not much of an advantage than merely using **Classification Error** defined as $\text {I} (y_i \ne \hat y_i)$, i.e. the sum of observations for which the predicted one is not the same as the actual one.   
+We will use Classification Error to define our classification tree splitting and to assess its performance. Below there are the code and attached results: 
 
 ## Fitting the Decision Tree model: Non-Pruned
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
@@ -70,7 +77,18 @@ augment(tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_cl
 
 ```
 
-Accuracy of around 79.25%, so a test error rate of around 25%. Not great...
+The decision tree (non-pruned) has 7 terminal nodes and considering every single predictor yields an accuracy of around 80\%, so a test error rate of around 20\%. Not great... This could be due to the fact that there are 41 predictors and we may have overfitted the data because of the resulting tree being too complex.  
+Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.  
+
+## Pruning
+
+The goal of pruning is to subselect a smaller tree from the bigger one, that will yield us the lowest error rate. We could consider every single subtree from the bigger tree, that has so many predictors, and that will make any computer crash because of it being too computational expensive, so we we will us the **Cost Complexity Pruning* idea: we consider a sequence of trees indexed by a non-negative tuning parameter $\alpha$ (that we can find via 10-fold cross validation (CV)).  
+So for each value of $\alpha$, there exists a corresponding subtree such that $T \subset T_0$ where $T_0$ is the whole original unpruned tree, such that we minimize this quantity: $\sum_{m=1}^{|T|} \sum_{x_i \in R_m} (y_i - \hat y_{R_m})^2 + \alpha |T|$, where:  
+- $|T|$ is the size of the tree, and therefore we will penalize based on the size of the tree and based on the value of $\alpha$;  
+- $\hat y_{R_m}$ is the predicted response for that region (so `PCOS=0 or 1`);  
+- $R_m$ is the m$^{th}$ terminal node for the subtree $T$.  
+So we will use 10-fold CV to find the optimal value for the tuning and penalizing parameter $\alpha$ and then fit again over the whole dataset to see the actual accuracy/test error.   
+Below there are the code and attached results: 
 
 
 ## Pruned Tree & Determining Tree Complexity via 10-fold CV 
@@ -106,7 +124,7 @@ final_tree_cv<- tree_wf2 |> tune_grid(resamples=cv_2,
 best_alpha <- select_best(final_tree_cv, metric="accuracy")
 best_alpha
 
-#finally fitting with alpha= 0.01511775
+#finally fitting with alpha= 0.04923883
 final_tree_wf <- finalize_workflow(tree_wf2, best_alpha)
 
 final_tree_fit <- fit(final_tree_wf, data=PCOS_cleaned)
@@ -123,7 +141,7 @@ final_tree_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimat
 
 
 ```
-With using 10-fold CV to choose the exact level of complexity, then the test error is of around $1-0.962963=0.037$, which is way lower than the non-pruned tree done above.  
+With using 10-fold CV to choose the exact level of complexity ($\alpha=0.049239$), then the test error is of around $1-0.9529=0.0471$, which is way lower than the non-pruned tree done above.  
 
 
 
