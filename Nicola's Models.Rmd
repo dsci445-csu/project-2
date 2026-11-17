@@ -38,7 +38,7 @@ PCOS_testing <- testing(PCOS_splits)
 
 ## Why a Tree-Based Model? 
 Tree-Based models are non-parametric and supervised set of methods that we can use for both regression and classification as in this case).  
-Tree models segments the predictor space into simpler regions, and within each region, they predict the outcome based on the mode of training observations in the region to which it belongs. Our first reason behind fitting a tree is that they are simple to fit, simple to interpret and, most importantly, the results are easy to communicate to an outside viewer (such as a doctor or a nurse in this case).   
+Tree models segments the predictor space into simpler regions, and within each region, they predict the outcome based on the mode of training observations in the region to which it belongs. Our first reason behind fitting a tree is that they are simple to fit, simple to interpret and, most importantly, the results are easy to communicate to an outside viewer (such as a doctor or a nurse in this case). 
 
 ## Building a Classification Tree
 As noticed above, building a classification tree starts with splitting up the space in cleaver ways. While for regression trees we could use Recursive Binary Splitting: pick the splitting that minimizes Residual Sum of Squares (RSS), for classification we need to use, because of the non-continuous nature of the outcome, either of these 2 methods:  
@@ -131,7 +131,7 @@ final_tree_fit <- fit(final_tree_wf, data=PCOS_cleaned)
 
 final_tree_fit |>
   extract_fit_engine() |>
-  rpart.plot(roundint=FALSE)
+  rpart.plot(roundint=TRUE)
 
 
 #calculating the test error 
@@ -141,15 +141,25 @@ final_tree_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimat
 
 
 ```
-With using 10-fold CV to choose the exact level of complexity ($\alpha=0.049239$), then the test error is of around $1-0.9529=0.0471$, which is way lower than the non-pruned tree done above.  
+With using 10-fold CV to choose the exact level of complexity ($\alpha=0.049239$), then the test error for the pruned tree (with only 4 terminal nodes) is of around $1-0.9259259=0.0740741$, which is way lower than the non-pruned tree done above.  
 
 
+### Limitations 
+Trees seem very competitive for their interpretability and science-communication ease, but compared to other methods, such as Lasso, most of the times tree-based models suffer from lower predictive performance and high variability (because of the sharp decision boundaries dictated by the regions).  Therefore we can take advantage of an approach called **Bagging** in order to lower its variability.  
 
 
 ## Bagging Tree
+Bagging stands for Bootstrap Aggregation and it comes from the idea that if you take multiple training sets from the population and then build a separate prediction model using each training set, then you can average the resulting predictions and end up with a lower variance in your overall model.  
+The steps are:  
+1. Take $B$ training sets, from the same sample with replacement making sure that the underlying sample's distribution is representative of the original one;  
+2. and calculate for each $\hat f_{\star 1}(x), \hat f_{\star 2}(x), ..., \hat f_{\star B}(x)$, where the star implies that the sample comes from the idea in (1);    
+3. Then obtain lower variance model as $\hat f_{bag}(x) = \frac{1}{B} \sum_{b=1}^B \hat f_{\star b}(x)$;  
+4. Then your resulting tree will have **low bias** (because they have not been pruned) and **lower variance** by combining thousands of these trees and, counterintuitively, the more trees we add and the lower risk of overfitting.  
+Therefore this seems like the most competitive to parametric methods we could ever be (maybe...) based on the fact that are fitting trees!  
+Below there are the code and attached results: 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #spec 
-bagging_spec <- rand_forest(trees=500) |> ## automatically grabs the number of columns
+bagging_spec <- rand_forest(trees=5000) |> ## automatically grabs the number of columns
   set_engine("ranger", importance="impurity") |> ## save information to plot importance
   set_mode("classification")
 
@@ -165,7 +175,11 @@ bagging_fit |>
   extract_fit_parsnip() |>
   vip(num_features = 20)
 
+#calculating the test error 
+augment(bagging_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
+
+bagging_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimate=.pred_class)
+
 ```
-
-
-
+Still, in practice we were supposed to end up with a lower variable tree, but we ended up with a lower accuracy (i.e. a higher test error) of around 0.8592, so a test error of around 0.1508, than the pruned method, despite fitting 5000 trees.  
+The main result from a bagging tree is given by the **Importance Plot**, so from here we have a sense of which predictor matters most in predicting `PCOS` diagnosis. In this case, we end up that `Follicle No. (R): the number of follicles counted in your right ovary` and `Follicle No. (L): the number of follicles counted in your left ovary` are the two most influential ones. 
