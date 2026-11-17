@@ -183,3 +183,8 @@ bagging_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimate=.
 ```
 Still, in practice we were supposed to end up with a lower variable tree, but we ended up with a lower accuracy (i.e. a higher test error) of around 0.8592, so a test error of around 0.1508, than the pruned method, despite fitting 5000 trees.  
 The main result from a bagging tree is given by the **Importance Plot**, so from here we have a sense of which predictor matters most in predicting `PCOS` diagnosis. In this case, we end up that `Follicle No. (R): the number of follicles counted in your right ovary` and `Follicle No. (L): the number of follicles counted in your left ovary` are the two most influential ones. 
+
+
+## Final Model for Trees
+
+Based on the accuracy, I would choose the pruned decision tree. 
