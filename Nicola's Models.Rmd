@@ -200,7 +200,14 @@ bagging_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimate=.
 Still, in practice we were supposed to end up with a lower variable tree, but we ended up with a similar accuracy (i.e. around the same test error) of around 0.9111111, so a test error of around 0.09 , than the pruned method, maybe because we are fitting 5000 trees.  
 The main result from a bagging tree is given by the **Importance Plot**, so from here we have a sense of which predictor matters most in predicting `PCOS` diagnosis. In this case, we end up that `Follicle No. (R): the number of follicles counted in your right ovary` and `Follicle No. (L): the number of follicles counted in your left ovary` are the two most influential ones, similarly to the pruned tree.
 
-## Random Forest 
+## Random Forest   
+One main limitation of bagged trees is that the number of predictors each tree is allowed to have is always the same, which could mean that a very-influential predictor may appear always on top of the importance plot and every tree may end up choosing it as a first decision split.  This makes all the other predictors not able to "compete" with their significance against the most-significant one.  Here is why *random forests* provide the idea of *Bagging* but with a freer prediction count per tree.  
+In fact random forests work as:  
+- While building the trees, a random sample of size $M$ predictors is chosen as the split candidates from the full set of $p$ predictors,  
+- Each time the tree is built, there is a different sample of predictors being chosen,  
+- It is based on $M$ and if $M=p$ then we are just fitting bagging, while as $M<p$ we get a better variance reduction than bagging because now each tree is more uncorrelated with the other trees because they are using different predictors,   
+- As with Bagging, we do not overfit if we add more trees and we can get the importance to examine the predictors (not as easily communicatable as just one tree), and finally, we can still find an estimate of the test error by examining the Out-Of-Bag error (OOB, i.e. the natural testing dataset given the fact that each time the tree fits only around $\frac{2}{3}$ of the data).  
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #spec2 
 rf_spec <- rand_forest(mtry = sqrt(.cols())) |> ## automatically grabs the number of columns
@@ -227,6 +234,18 @@ augment(rf_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_clas
 The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11\%, a little worse than the bagging model, but definitely better than the unpruned decision tree.  Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis. 
 
 ## Boosting
+The main limitation of bagging, or random forests, is that we are fitting the same decision tree for each of the subsets of the original training data, then we can introduce **Boosting** which allows us to fit a tree iteratively-based:    
+- the Boosted Tree learns slowly, so that we can avoid overfitting, in fact based on a current model, we fit a decision tree to the classification errors (residuals) and add that new tree to our original fitted function ($\hat f(x)$) to update the information known,  
+- Each tree we fit is typically very small with just a few terminal nodes, so we go from *higher bias* (because of the simpler trees) and *lower variance* (because of the less amount of predictors in the model), to a **lower bias** (because we are making the tree more complex as we go and let the model learn) and a **slight increase in variance** (because we are making the model have more predictors).   
+The actual algorithm works as:  
+1. Set $\hat f(x)=0$ and the outcome is either 0 or 1 so we fit a **gradient boosting** where the probability of the observation belonging to class 1 is as $p(x)=\frac{e^{\hat f(x)}}{1+e^{\hat f(x)}}$ where $\hat f(x)$ represents the log odds of that observation belonging to class 1. Then the residual is calculated as $r_i^{(b)}= y_i -p^{b-1}(x_i)$, where we subtract the predicted probability.  
+2. For the amount of trees you want to fit (total of $B$), for $b=1,...,B$ we do:  
+I. Fit $\hat f^{b}$ with $d$ splits to the training data $(x,r)$;  
+II. Update $\hat f$ by adding a shrunken version of the new tree as: $\hat f(x)=\hat f(x) + \lambda \hat f^b (x)$;  
+III. Then we update the residuals as $r_i^{(b)}=r_i^{(b)}-\lambda \hat f^b (x_i)$.  
+3. Then we output our boosted model as $\hat f(x) = \sum_{b=1}^B \lambda \hat f^{(b)} (x)$.  
+In this case we need to make cleaver choices (i.e. do tuning) for these parameters:  the number of total trees $B$ because in this case, not as in bagging or random forest, we could overfit with too many trees; the learning rate or shrinkage parameter $\lambda$, and if too small we can end up never achieving that reduction in variance, while if too big we may overfit too easily; and finally $d$, the number of splits in each tree. We will set $\lambda=0.01$ for **stamps** (i.e. $d=1$).  
+
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 boost_spec <- boost_tree(trees = 5000, tree_depth = 1, learn_rate = 0.001) %>%
@@ -246,8 +265,15 @@ boost_fit <- fit(boost_wf, data=PCOS_training)
 augment(boost_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
 
 ```
-The boosted model has a 
+The boosted model has a estimated test accuracy of 0.866 and a test error of around 0.144. This does a little worse than the pruned tree alone and also somehow closer to the test error rate that we got from the bagged and random forest one.  
 
-## Final Model for Trees
 
-Based on the accuracy, I would choose the pruned decision tree. 
+## Final Model for Trees: Pruned Decision Tree!
+
+Based on the estimated test classification accuracy/error (of around 9\%), I would choose the pruned decision tree. Other than having the lowest test error rate, the pruned tree has the advantage, over the random forest and boost models for example, to be easily viewable as an actual tree graph. Additionally, having done a subselection of variables thanks to the pruning process, allows us to have in the model only the most important ones which are:  
+- `Follicle No. (R)`:  the number of follicles counted in the respondent's right ovary .   
+
+- `Follicle No. (L)`:  the number of follicles counted in the respondent's left ovary .   
+- `hair growth(Y/N)`:  female respondents answered the question "Did you see your hair grow?" .  
+- `Weight gain(Y/N)`: female respondents answered the question "Did you gain weight?" .   
+It is hard to stress enough the great advantage of trees which is science communication: having a readily and easily-accessible and -readable graph in screenings to hand out to doctors and patients alike, this can aid the diagnosis from the doctors' standpoint and encourage patients to do frequent screenings and do preventive care rather than just waiting for the symptoms to overweight their lives upside-down.
