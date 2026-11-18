@@ -43,8 +43,17 @@ The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, dev
 - Ovaries presenting Polycysts in ultrasound images;  
 - Hyperandrogenism such as with acne and extra hair.   
 These criteria, especially the first and last are easily verifiable, without the need of expensive medical machinery, but not shared universally by the totality of the medical community (Hdaib et al., 2022). At the same time Christ & Cedars (2023) detailed the rising cases of false positive and false negative diagnosis which can impact either way a woman's life significantly.   
-In the recent years, there is a crescent need for more accurate diagnosis and, most importantly, un-expensive ones. This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed. 
+In the recent years, there is a crescent need for more accurate diagnosis and, most importantly, un-expensive ones. This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed.   
 
+We are going to explore and try to give a meaningful impact to this syndrome's prevention and correct diagnosis by using a dataset coming from Kaggle called Polycystic ovary syndrome (PCOS), collected in 2020 from 10 hospitals in Kerala, India (Kottarathil, 2023).   
+
+After cleaning the dataset for missing values, deleting indexing columns, and after making sure to have  treated numeric predictors as such, factor ones and character ones as such, we examined the dataset that contains 43 total variables.   
+
+The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.  
+The remaining variables are listed in the table below:  
+
+| Name | Meaning | 
+|----------|-----------|
 
 
 
