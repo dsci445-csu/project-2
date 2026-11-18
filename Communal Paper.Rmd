@@ -42,7 +42,7 @@ The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, dev
 - Periods with irregular cycles;  
 - Ovaries presenting Polycysts in ultrasound images;  
 - Hyperandrogenism such as with acne and extra hair.   
-These criteria, especially the first and last are easily verifiable, without the need of expensive medical machinery. At the same time Christ & Cedars (2023) detailed the rising cases of false positive and false negative diagnosis which can impact either way a woman's life significantly.   
+These criteria, especially the first and last are easily verifiable, without the need of expensive medical machinery, but not shared universally by the totality of the medical community (Hdaib et al., 2022). At the same time Christ & Cedars (2023) detailed the rising cases of false positive and false negative diagnosis which can impact either way a woman's life significantly.   
 In the recent years, there is a crescent need for more accurate diagnosis and, most importantly, un-expensive ones. This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed. 
 
 
@@ -126,7 +126,8 @@ tree_fit |>
 
 The decision tree (non-pruned) has 10 terminal nodes and considering every single predictor yields an accuracy of around 86	\%, so a test error rate of around 14\%. The most important predictor is `Follicle No. (R)`.  
 Not great test error... This could be due to the fact that there are 41 predictors and we may have overfitted the data because of the resulting tree being too complex.  
-Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.  
+Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.    
+This decision tree that we fit achieved a higher accuracy (than around 76\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
 ### Pruning
 
@@ -263,7 +264,8 @@ rf_fit |>
 #augment(rf_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
 
 ```
-The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11\%, a little worse than the bagging model, but definitely better than the unpruned decision tree.  Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis. 
+The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11\%, a little worse than the bagging model, but definitely better than the unpruned decision tree.  Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis.   
+This random forest model that we fit achieved a higher accuracy (than around 88\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
 ### Boosting
 The main limitation of bagging, or random forests, is that we are fitting the same decision tree for each of the subsets of the original training data, then we can introduce **Boosting** which allows us to fit a tree iteratively-based:    
@@ -308,7 +310,7 @@ Based on the estimated test classification accuracy/error (of around 9\%), I wou
 - `Follicle No. (L)`:  the number of follicles counted in the respondent's left ovary .   
 - `hair growth(Y/N)`:  female respondents answered the question "Did you see your hair grow?" .  
 - `Weight gain(Y/N)`: female respondents answered the question "Did you gain weight?" .   
-It is hard to stress enough the great advantage of trees which is science communication: having a readily and easily-accessible and -readable graph in screenings to hand out to doctors and patients alike, this can aid the diagnosis from the doctors' standpoint and encourage patients to do frequent screenings and do preventive care rather than just waiting for the symptoms to overweight their lives upside-down.
+It is hard to stress enough the great advantage of trees which is science communication and its integration with the clinical decision system: having a readily and easily-accessible and -readable graph in screenings to hand out to doctors and patients alike, this can aid the diagnosis from the doctors' standpoint and encourage patients to do frequent screenings and do preventive care rather than just waiting for the symptoms to overweight their lives upside-down.
 
 
 # Results
