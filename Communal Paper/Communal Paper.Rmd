@@ -37,13 +37,13 @@ PCOS -- Polycystic Ovarian Syndrome.
 # Abstract 
 
 # Literature & Motivation
-Polyendocrine Metabolic Ovarian Syndrome (PMOS), or previously known as Polycystic Ovarian Syndrome (PCOS), is a syndrome that affects roughly 80\% of women worldwide, especially in their fertile years  (Teede et al., 2026; World Health Organization, 2026). The name changed recently  (Teede et al., 2026) after a medical consensus regarding the nature of the causes of PMOS, for which PCOS was relegating as the cause of this syndrome only to the ovaries' cysts.   
+Polyendocrine Metabolic Ovarian Syndrome (PMOS), or previously known as Polycystic Ovarian Syndrome (PCOS), is a syndrome that affects roughly 10\% of women worldwide, especially in their fertile years  (Teede et al., 2026; World Health Organization, 2026). The name changed recently  (Teede et al., 2026) after a medical consensus regarding the nature of the causes of PMOS, for which PCOS was relegating as the cause of this syndrome only to the ovaries' cysts.   
 The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, developed by 27 doctors experts in PCOS in the Netherlands in 2003 (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004). This criterion was focused on diagnosing PCOS via meeting at least two out of these three criteria:  
 - Periods with irregular cycles;  
 - Ovaries presenting Polycysts in ultrasound images;  
 - Hyperandrogenism such as with acne and extra hair.   
 These criteria, especially the first and last are easily verifiable, without the need of expensive medical machinery, but not shared universally by the totality of the medical community (Hdaib et al., 2022). At the same time Christ & Cedars (2023) detailed the rising cases of false positive and false negative diagnosis which can impact either way a woman's life significantly.   
-In the recent years, there is a crescent need for more accurate diagnosis and, most importantly, un-expensive ones. This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed.   
+In the recent years, there is a crescent need for more accurate diagnosis because more than 70\% of cases remain undiagnosed or misdiagnosed as something else and, most importantly, un-expensive methods (World Health Organization, 2026). This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed.   
 
 We are going to explore and try to give a meaningful impact to this syndrome's prevention and correct diagnosis by using a dataset coming from Kaggle called Polycystic ovary syndrome (PCOS), collected in 2020 from 10 hospitals in Kerala, India (Kottarathil, 2023).   
 
