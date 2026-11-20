@@ -1,7 +1,7 @@
 ---
-title: " DSCI 445 - Final Project - Group 2"
-subtitle: "Predicting PMOS Diagnosis via ML Methods"
-author: "Sydney Gansberg, Sherel Gonzales, Sarah Haywood, Nicola Malatesta"
+title: "Predicting PMOS Diagnosis via ML Methods"
+subtitle: "DSCI 445 - Final Project - Group 2"
+author: "Gansberg, Sydney; Gonzales, Sherel; Haywood, Sarah; Malatesta, Nicola"
 output: pdf_document
 header-includes:
   - \usepackage{setspace}
@@ -104,7 +104,7 @@ One big *caveat* is that these measures to evaluate the quality of the split (ei
 We will use Classification Error to define our classification tree splitting and to assess its performance. Below there are the code and attached results: 
 
 ### Fitting the Decision Tree model: Non-Pruned
-```{r, message=FALSE, warning=FALSE, echo=FALSE, cache=TRUE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE, cache=TRUE, out.width="50%"}
 #spec
 tree_spec <- decision_tree(
   mode="classification",
@@ -151,7 +151,7 @@ Below there are the code and attached results:
 
 ### Pruned Tree & Determining Tree Complexity via 10-fold CV 
 
-```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
+```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE, out.width="50%"}
 #tree recipe
 tree_recipe2 <- recipe(PCOS ~ ., data=PCOS_training)
 
@@ -215,7 +215,7 @@ The steps are:
 4. Then your resulting tree will have **low bias** (because they have not been pruned) and **lower variance** by combining thousands of these trees and, counterintuitively, the more trees we add and the lower risk of overfitting.  
 Therefore this seems like the most competitive to parametric methods we could ever be (maybe...) based on the fact that are fitting trees!  
 Below there are the code and attached results: 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, fig.align = 'center'}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, fig.align = 'center', out.width="50%"}
 #spec 
 bagging_spec <- rand_forest(trees=5000) |> ## automatically grabs the number of columns
   set_engine("ranger", importance="impurity") |> ## save information to plot importance
@@ -250,7 +250,7 @@ In fact random forests work as:
 - It is based on $M$ and if $M=p$ then we are just fitting bagging, while as $M<p$ we get a better variance reduction than bagging because now each tree is more uncorrelated with the other trees because they are using different predictors,   
 - As with Bagging, we do not overfit if we add more trees and we can get the importance to examine the predictors (not as easily communicatable as just one tree), and finally, we can still find an estimate of the test error by examining the Out-Of-Bag error (OOB, i.e. the natural testing dataset given the fact that each time the tree fits only around $\frac{2}{3}$ of the data).  
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, out.width="50%"}
 #spec2 
 rf_spec <- rand_forest(mtry = sqrt(.cols())) |> ## automatically grabs the number of columns
   set_engine("randomForest", importance = TRUE) |> ## save information to plot importance
@@ -324,6 +324,11 @@ It is hard to stress enough the great advantage of trees which is science commun
 
 # Results
 
+
+# Data Availability Statement
+The dataset "Polycystic ovary syndrome (PCOS)" by Kottarathil, P. that we used comes from the publicly available source in Kaggle available from 2023 <https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos>. 
+
+
 # References
 Please double check for who has more experience than me with APA 7$^{th}$ edition citation, I used this website to help me out <https://www.mybib.com/tools/apa-citation-generator>. 
 
@@ -349,7 +354,6 @@ Please double check for who has more experience than me with APA 7$^{th}$ editio
   
   (Kottarathil, 2023)
   
-  Kottarathil, P. (2023). Polycystic ovary syndrome (PCOS) [Data set]. Kaggle. https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos
 
 
 
