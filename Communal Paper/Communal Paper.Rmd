@@ -5,9 +5,9 @@ author: "Gansberg, Sydney; Gonzales, Sherel; Haywood, Sarah; Malatesta, Nicola"
 output: pdf_document
 header-includes:
   - \usepackage{setspace}
-  - \doublespacing
+  - \onehalfspacing
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
-geometry: margin=1in
+geometry: margin=0.8in
 ---
 
 ```{r setup, include=FALSE}
@@ -50,16 +50,12 @@ We are going to explore and try to give a meaningful impact to this syndrome's p
 After cleaning the dataset for missing values, deleting indexing columns, and after making sure to have  treated numeric predictors as such, factor ones and character ones as such, we examined the dataset that contains 43 total variables.   
 
 The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.  
-The remaining variables are listed in the table below:  
-
-| Name | Meaning | 
-|----------|-----------|
-
+The remaining variables, and especially the most important ones, will be discussed in the paper based on their importance.
 
 
 # 2. Methodology
 In order to aid the science community, and in particular women and doctors from both sides to help with the diagnosis and with the prevention, we experimented various ML methods to help convey an accurate diagnosis, that could be the most comfortable (no invasive unneeded checks) and straightforward possible (Khan & Khare, 2026). At the same time, we acknowledge that PMOS is a syndrome for which research focus has been put only in the last few decades and that the ongoing medical research regarding its causes and symptoms may reveal aspects that were not collected by the dataset (Kottarathil, 2023).      
-The protocol assumed for hyperparameyter tuning spans from 5- to 10-fold Cross Validation (CV), while the tratinig/test split happened with 75\%/25\% split.  
+The protocol assumed for hyperparameters tuning spans from 5- to 10-fold Cross Validation (CV), while the training/test split happened with 75\%/25\% split.  
 
 
 ##  2.1 Tree-Based Models
@@ -105,42 +101,13 @@ As noticed above, building a classification tree starts with splitting up the sp
 One big *caveat* is that these measures to evaluate the quality of the split (either Gini or Entropy) are very useful in cases when the data is balanced.  In our case, the percentage of `PCOS=1` over the total is around 32.65\%, so either measures may give not much of an advantage than merely using **Classification Error** defined as $\text {I} (y_i \ne \hat y_i)$, i.e. the sum of observations for which the predicted one is not the same as the actual one.   
 We will use Classification Error to define our classification tree splitting and to assess its performance. Below there are the code and attached results: 
 
-### 2.1.3 Fitting the Decision Tree model: Non-Pruned
-```{r, message=FALSE, warning=FALSE, echo=FALSE, cache=TRUE, out.width="50%"}
-#spec
-tree_spec <- decision_tree(
-  mode="classification",
-  engine="rpart")
-
-#recipe
-tree_recipe <- recipe(PCOS ~ ., data=PCOS_training)
-
-tree_wf <- workflow() |> add_recipe(tree_recipe) |> add_model(tree_spec) 
-
-tree_fit <- fit(tree_wf, data=PCOS_training)
-
-#metrics
-metric <- metric_set(accuracy)
-tree_pred <- augment(tree_fit, new_data = PCOS_testing)
-#tree_pred |> metric(truth=PCOS, estimate=.pred_class) 
-
-#plot
-tree_fit |>
-  extract_fit_engine() |>
-  rpart.plot(roundint=FALSE)
-
-#calculating the test error 
-#augment(tree_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
-
-
-```
 
 The decision tree (non-pruned) has 10 terminal nodes and considering every single predictor yields an accuracy of around 83	\%, so a test error rate of around 17\%. The most important predictor is `Follicle No. (R)`.  
 Not great test error... This could be due to the fact that there are 41 predictors and we may have overfitted the data because of the resulting tree being too complex.  
 Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.    
 This decision tree that we fit achieved a higher accuracy (than around 76\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
-### 2.1.4 Pruning
+### 2.1.3 Pruning
 
 The goal of pruning is to subselect a smaller tree from the bigger one, that will yield us the lowest error rate. We could consider every single subtree from the bigger tree, that has so many predictors, and that will make any computer crash because of it being too computational expensive, so we we will us the **Cost Complexity Pruning* idea: we consider a sequence of trees indexed by a non-negative tuning parameter $\alpha$ (that we can find via 10-fold cross validation (CV)).  
 So for each value of $\alpha$, there exists a corresponding subtree such that $T \subset T_0$ where $T_0$ is the whole original unpruned tree, such that we minimize this quantity: $\sum_{m=1}^{|T|} \sum_{x_i \in R_m} (y_i - \hat y_{R_m})^2 + \alpha |T|$, where:  
@@ -151,7 +118,7 @@ So we will use 10-fold CV to find the optimal value for the tuning and penalizin
 Below there are the code and attached results: 
 
 
-### 2.1.5 Pruned Tree & Determining Tree Complexity via 10-fold CV 
+### 2.1.4 Pruned Tree & Determining Tree Complexity via 10-fold CV 
 
 ```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE, out.width="50%"}
 #tree recipe
@@ -201,94 +168,37 @@ final_tree_fit |>
 
 
 ```
-With using 10-fold CV to choose the exact level of complexity ($\alpha=0.02424462$), then the test error for the pruned tree (with only 7 terminal nodes) is of around $1-0.9111111		=0.09$, which is a exactly the same than the non-pruned tree done above.  Still, `Follicle No. (R)` is the most important predictor.  
+  
+  With using 10-fold CV to choose the exact level of complexity ($\alpha=0.02424462$), then the test error for the pruned tree (with only 7 terminal nodes) is of around $1-0.9111111		=0.09$, which is a exactly the same than the non-pruned tree done above.  Still, `Follicle No. (R)` is the most important predictor.  
 
-
-### 2.1.6 Limitations 
 Trees seem very competitive for their interpretability and science-communication ease, but compared to other methods, such as Lasso, most of the times tree-based models suffer from lower predictive performance and high variability (because of the sharp decision boundaries dictated by the regions).  Therefore we can take advantage of an approach called **Bagging** in order to lower its variability.  
 
 
-### 2.1.7 Bagging Tree
+### 2.1.5 Bagging Tree
 Bagging stands for Bootstrap Aggregation and it comes from the idea that if you take multiple training sets from the population and then build a separate prediction model using each training set, then you can average the resulting predictions and end up with a lower variance in your overall model.  
-The steps are:  
-1. Take $B$ training sets, from the same sample with replacement making sure that the underlying sample's distribution is representative of the original one;  
-2. and calculate for each $\hat f_{\star 1}(x), \hat f_{\star 2}(x), ..., \hat f_{\star B}(x)$, where the star implies that the sample comes from the idea in (1);    
-3. Then obtain lower variance model as $\hat f_{bag}(x) = \frac{1}{B} \sum_{b=1}^B \hat f_{\star b}(x)$;  
-4. Then your resulting tree will have **low bias** (because they have not been pruned) and **lower variance** by combining thousands of these trees and, counterintuitively, the more trees we add and the lower risk of overfitting.  
+
 Therefore this seems like the most competitive to parametric methods we could ever be (maybe...) based on the fact that are fitting trees!  
-Below there are the code and attached results: 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, fig.align = 'center', out.width="50%"}
-#spec 
-bagging_spec <- rand_forest(trees=5000) |> ## automatically grabs the number of columns
-  set_engine("ranger", importance="impurity") |> ## save information to plot importance
-  set_mode("classification")
 
-#recipe stays as is for the tree model
-bagging_recipe <- recipe(PCOS ~ ., data=PCOS_training)
-
-bagging_wf <- workflow() |> add_recipe(bagging_recipe) |> add_model(bagging_spec) 
-
-bagging_fit <- fit(bagging_wf, data=PCOS_training)
-
-# importance
-bagging_fit |> 
-  extract_fit_parsnip() |>
-  vip(num_features = 20)
-
-#calculating the test error 
-#augment(bagging_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
-
-#bagging_fit |> augment(new_data=PCOS_testing) |> conf_mat(truth=PCOS, estimate=.pred_class)
-
-```
-Still, in practice we were supposed to end up with a lower variable tree, but we ended up with a similar accuracy (i.e. around the same test error) of around 0.9111111, so a test error of around 0.09 , than the pruned method, maybe because we are fitting 5000 trees.  
+Despite, in practice we were supposed to end up with a lower variable tree, but we ended up with a similar accuracy (i.e. around the same test error) of around 0.9111111, so a test error of around 0.09 , than the pruned method, maybe because we are fitting 5000 trees.  
 The main result from a bagging tree is given by the **Importance Plot**, so from here we have a sense of which predictor matters most in predicting `PCOS` diagnosis. In this case, we end up that `Follicle No. (R): the number of follicles counted in your right ovary` and `Follicle No. (L): the number of follicles counted in your left ovary` are the two most influential ones, similarly to the pruned tree.
 
-### 2.1.8 Random Forest   
+### 2.1.6 Random Forest   
 One main limitation of bagged trees is that the number of predictors each tree is allowed to have is always the same, which could mean that a very-influential predictor may appear always on top of the importance plot and every tree may end up choosing it as a first decision split.  This makes all the other predictors not able to "compete" with their significance against the most-significant one.  Here is why *random forests* provide the idea of *Bagging* but with a freer prediction count per tree.  
 In fact random forests work as:  
 - While building the trees, a random sample of size $M$ predictors is chosen as the split candidates from the full set of $p$ predictors,  
 - Each time the tree is built, there is a different sample of predictors being chosen,  
 - It is based on $M$ and if $M=p$ then we are just fitting bagging, while as $M<p$ we get a better variance reduction than bagging because now each tree is more uncorrelated with the other trees because they are using different predictors,   
-- As with Bagging, we do not overfit if we add more trees and we can get the importance to examine the predictors (not as easily communicatable as just one tree), and finally, we can still find an estimate of the test error by examining the Out-Of-Bag error (OOB, i.e. the natural testing dataset given the fact that each time the tree fits only around $\frac{2}{3}$ of the data).  
+ 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, out.width="50%"}
-#spec2 
-rf_spec <- rand_forest(mtry = sqrt(.cols())) |> ## automatically grabs the number of columns
-  set_engine("randomForest", importance = TRUE) |> ## save information to plot importance
-  set_mode("classification")
-
-#recipe stays as is for the tree model
-rf_recipe <- recipe(PCOS ~ ., data=PCOS_training)
-
-rf_wf <- workflow() |> add_recipe(rf_recipe) |> add_model(rf_spec) 
-
-rf_fit <- fit(rf_wf, data=PCOS_training)
-
-
-#plot
-rf_fit |> 
-  extract_fit_parsnip() |> 
-  vip()
-
-#calculating the test error 
-#augment(rf_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
-
-```
 The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11\%, a little worse than the bagging model, but definitely better than the unpruned decision tree.  Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis.   
 This random forest model that we fit achieved a higher accuracy (than around 88\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
-### 2.1.9 Boosting
+### 2.1.7 Boosting
 The main limitation of bagging, or random forests, is that we are fitting the same decision tree for each of the subsets of the original training data, then we can introduce **Boosting** which allows us to fit a tree iteratively-based:    
 - the Boosted Tree learns slowly, so that we can avoid overfitting, in fact based on a current model, we fit a decision tree to the classification errors (residuals) and add that new tree to our original fitted function ($\hat f(x)$) to update the information known,  
 - Each tree we fit is typically very small with just a few terminal nodes, so we go from *higher bias* (because of the simpler trees) and *lower variance* (because of the less amount of predictors in the model), to a **lower bias** (because we are making the tree more complex as we go and let the model learn) and a **slight increase in variance** (because we are making the model have more predictors).   
-The actual algorithm works as:  
-1. Set $\hat f(x)=0$ and the outcome is either 0 or 1 so we fit a **gradient boosting** where the probability of the observation belonging to class 1 is as $p(x)=\frac{e^{\hat f(x)}}{1+e^{\hat f(x)}}$ where $\hat f(x)$ represents the log odds of that observation belonging to class 1. Then the residual is calculated as $r_i^{(b)}= y_i -p^{b-1}(x_i)$, where we subtract the predicted probability.  
-2. For the amount of trees you want to fit (total of $B$), for $b=1,...,B$ we do:  
-I. Fit $\hat f^{b}$ with $d$ splits to the training data $(x,r)$;  
-II. Update $\hat f$ by adding a shrunken version of the new tree as: $\hat f(x)=\hat f(x) + \lambda \hat f^b (x)$;  
-III. Then we update the residuals as $r_i^{(b)}=r_i^{(b)}-\lambda \hat f^b (x_i)$.  
-3. Then we output our boosted model as $\hat f(x) = \sum_{b=1}^B \lambda \hat f^{(b)} (x)$.  
+  
+  
 In this case we need to make cleaver choices (i.e. do tuning) for these parameters:  the number of total trees $B$ because in this case, not as in bagging or random forest, we could overfit with too many trees; the learning rate or shrinkage parameter $\lambda$, and if too small we can end up never achieving that reduction in variance, while if too big we may overfit too easily; and finally $d$, the number of splits in each tree. We will set $\lambda=0.01$ for **stamps** (i.e. $d=1$).  
 
 
@@ -313,7 +223,7 @@ boost_fit <- fit(boost_wf, data=PCOS_training)
 The boosted model has a estimated test accuracy of 0.866 and a test error of around 0.144. This does a little worse than the pruned tree alone and also somehow closer to the test error rate that we got from the bagged and random forest one.  
 
 
-### 2.1.10 Final Model for Trees: Pruned Decision Tree!
+### 2.1.8 Final Model for Trees: Pruned Decision Tree!
 
 Based on the estimated test classification accuracy/error (of around 9\%), I would choose the pruned decision tree. Other than having the lowest test error rate, the pruned tree has the advantage, over the random forest and boost models for example, to be easily viewable as an actual tree graph. Additionally, having done a subselection of variables thanks to the pruning process, allows us to have in the model only the most important ones which are:  
 - `Follicle No. (R)`:  the number of follicles counted in the respondent's right ovary .   
