@@ -37,8 +37,8 @@ PCOS -- Polycystic Ovarian Syndrome.
 # 0. Abstract 
 
 # 1. Literature & Motivation
-Polyendocrine Metabolic Ovarian Syndrome (PMOS), or previously known as Polycystic Ovarian Syndrome (PCOS), is a syndrome that affects roughly 10\% of women worldwide, especially in their fertile years  (Teede et al., 2026; World Health Organization, 2026). The name changed recently  (Teede et al., 2026) after a medical consensus regarding the nature of the causes of PMOS, for which PCOS was relegating as the cause of this syndrome only to the ovaries' cysts.   
-The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, developed by 27 doctors experts in PCOS in the Netherlands in 2003 (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004). This criterion was focused on diagnosing PCOS via meeting at least two out of these three criteria:  
+  Polyendocrine Metabolic Ovarian Syndrome (PMOS), or previously known as Polycystic Ovarian Syndrome (PCOS), is a syndrome that affects roughly 10\% of women worldwide, especially in their fertile years  (Teede et al., 2026; World Health Organization, 2026). The name changed recently after a medical consensus regarding the nature of the causes of PMOS, for which PCOS was relegating as the cause of this syndrome only to the ovaries' cysts (Teede et al., 2026).   
+  The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, developed by 27 doctors experts in PCOS in the Netherlands in 2003 (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004). This criterion was focused on diagnosing PCOS via meeting at least two out of these three criteria:  
 - Periods with irregular cycles;  
 - Ovaries presenting Polycysts in ultrasound images;  
 - Hyperandrogenism such as with acne and extra hair.   
