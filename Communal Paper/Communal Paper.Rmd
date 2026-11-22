@@ -38,8 +38,11 @@ PCOS -- Polycystic Ovarian Syndrome.
 # 1. Literature & Motivation
 
 |     Polyendocrine Metabolic Ovarian Syndrome (PMOS), previously known as Polycystic Ovarian Syndrome (PCOS), is hormonal condition affecting roughly 10% of women worldwide, especially in their fertile years (Teede et al., 2026; World Health Organization, 2026). The name changed recently after a medical consensus regarding the nature of the causes of PMOS, moving from focusing solely on the ovaries' cysts to a more holistic viewpoint (Teede et al., 2026). 
+
 |     The diagnosing criterion was developed by 27 experts in the Netherlands in 2003, and requires patients to meet at least two of the following criteria (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004): periods with irregular cycles, ovaries presenting polycysts in ultrasound images, and hyperandrogenism (e.g. acne and extra hair).
-|     While these criteria, especially the first and last, are easily verifiable without the need of expensive medical machinery, they are not shared universally by the medical community (Hdaib et al., 2022). The validity of this criteria is also inconsistent as we see rising cases of false negative and positive diagnoses (Christ & Cedars, 2023).
+
+|     While these criteria, especially the first and last, are easily verifiable without expensive medical machinery, they are not shared universally by the medical community (Hdaib et al., 2022). The validity of this criteria is also inconsistent as we see rising cases of false negative and positive diagnoses (Christ & Cedars, 2023).
+
 |     Now more than ever there is a pressing need for more accurate, inexpensive diagnosis with more than 70% of cases remaining undiagnosed or misdiagnosed (World Health Organization, 2026). Machine learning (ML) has the potential to support PMOS diagnosis, aiding doctors and patients in their pursuit of answers.
 
 We are going to explore and try to give a meaningful impact to this syndrome's prevention and correct diagnosis by using a dataset coming from Kaggle called Polycystic ovary syndrome (PCOS), collected in 2020 from 10 hospitals in Kerala, India (Kottarathil, 2023).
