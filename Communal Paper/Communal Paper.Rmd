@@ -49,7 +49,8 @@ We are going to explore and try to give a meaningful impact to this syndrome's p
 
 After cleaning the dataset for missing values, deleting indexing columns, and after making sure to have treated numeric predictors as such, factor ones and character ones as such, we examined the dataset that contains 43 total variables.
 
-The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.\
+The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.
+
 The remaining variables, and especially the most important ones, will be discussed in the paper based on their importance.
 
 # 2. Methodology
@@ -61,7 +62,8 @@ The protocol assumed for hyperparameters tuning spans from 5- to 10-fold Cross V
 
 ```{r, include=FALSE}
 #cleaning the data and dividing it into training and test
-PCOS_csv <- read_csv("/data/accounts/fa26/sarahhaywoodfa26/project-2/PCOS.csv")
+url <- "https://raw.githubusercontent.com/dsci445-csu/project-2/refs/heads/main/PCOS.csv"
+PCOS_csv <- read_csv(url)
 PCOS_csv$`II beta-HCG(mIU/mL)`[124] <- 1.99 #the typo as "1.99."
 PCOS_csv <- PCOS_csv[-306, ]
 
