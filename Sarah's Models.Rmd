@@ -2,6 +2,7 @@
 title: "Sarah's Models"
 output: pdf_document
 ---
+
 ```{r, include=FALSE}
 #libraries + reproducibility
 set.seed(44)
@@ -41,6 +42,14 @@ PCOS_training <- training(PCOS_splits)
 PCOS_testing <- testing(PCOS_splits)
 ```
 
+## Why LASSO?
+
+Least absolute shrinkage and selection operator (LASSO) is a method used for regression and classification that constrains its predictors, reducing variance in the model. The coefficients of this model minimize $\sum_{i=1}^{n} (y_i - \beta_0 -\sum_{j=1}^{n} \beta_jx_{ij})^2 + \lambda\sum_{j=1}^{p}|\beta_j|$ , where $\lambda$ is a penalty that shrinks the coeffiencts towards 0. This allows for feature selection, eliminating redundant predictors. Although this does slightly increase the bias of the model, it does reduce the variance, which is crucial for creating a model that is more generalizable. Because feature selection also shrinks the size of the model, it allows for greater interpretability than a model that retains all predictors.
+
+## Building a Model with LASSO
+
+### Selecting a Lambda
+
 ```{r}
 lasso_recipe <- recipe(PCOS ~., data = PCOS_training)|>
   step_normalize(all_numeric_predictors())|>
@@ -66,6 +75,14 @@ lasso_tuned <- lasso_wf |>
 autoplot(lasso_tuned)
 ```
 
+Selecting the best $\lambda$ is crucial for the LASSO model since it's responsible for shrinking the coefficients and selecting which predictors are important. Here, 10-fold cross validation was utilized to pick the optimal $\lambda$, and Figure \_\_\_ illustrates the greatest accuracy when $\lambda = 0.02222996$.
+
+## Selecting the Best Model
+
+We then fit the model with this $\lambda$ and are able to assess the various predictors that are included and which are excluded. The model fitted with the $\lambda$ above maintained 16 of the original 41 predictors, the five most important being the number of follicles in the right ovary, and whether or not the patient experienced weight gain, hair growth, skin darkening, or an irregular menstrual cycle.
+
+### Predictors and What They Mean
+
 ```{r}
 best_lasso <- select_best(lasso_tuned, metric = "roc_auc")
 best_lasso
@@ -86,6 +103,9 @@ dropped_predictors <- lasso_coefficients |>
 kept_predictors
 dropped_predictors
 ```
+
+## Final Model Accuracy
+
 ```{r}
 lasso_pred <- augment(final_lasso_fit, new_data = PCOS_testing)
 
