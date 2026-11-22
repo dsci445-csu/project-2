@@ -25,43 +25,40 @@ library(ranger)
 library(vip) ## bagging 
 ```
 
-
 ### Summary of Abbreviations (for us, not to be submitted)
-ML -- Machine Learning.  
 
-PMOS -- Polyendocrine Metabolic Ovarian Syndrome.    
+ML -- Machine Learning.
 
-PCOS -- Polycystic Ovarian Syndrome.  
+PMOS -- Polyendocrine Metabolic Ovarian Syndrome.
 
+PCOS -- Polycystic Ovarian Syndrome.
 
-# 0. Abstract 
+# 0. Abstract
 
 # 1. Literature & Motivation
-  Polyendocrine Metabolic Ovarian Syndrome (PMOS), or previously known as Polycystic Ovarian Syndrome (PCOS), is a syndrome that affects roughly 10\% of women worldwide, especially in their fertile years  (Teede et al., 2026; World Health Organization, 2026). The name changed recently after a medical consensus regarding the nature of the causes of PMOS, for which PCOS was relegating as the cause of this syndrome only to the ovaries' cysts (Teede et al., 2026).   
-  The widespread criterion used in diagnosing PMOS is the Rotterdam Criterion, developed by 27 doctors experts in PCOS in the Netherlands in 2003 (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004). This criterion was focused on diagnosing PCOS via meeting at least two out of these three criteria:  
-- Periods with irregular cycles;  
-- Ovaries presenting Polycysts in ultrasound images;  
-- Hyperandrogenism such as with acne and extra hair.   
-These criteria, especially the first and last are easily verifiable, without the need of expensive medical machinery, but not shared universally by the totality of the medical community (Hdaib et al., 2022). At the same time Christ & Cedars (2023) detailed the rising cases of false positive and false negative diagnosis which can impact either way a woman's life significantly.   
-In the recent years, there is a crescent need for more accurate diagnosis because more than 70\% of cases remain undiagnosed or misdiagnosed as something else and, most importantly, un-expensive methods (World Health Organization, 2026). This is why machine learning (ML) can come in and help support or not a PMOS diagnosis, keeping the fact that the complexity of this syndrome has not been fully captured and a medical consult is always needed.   
 
-We are going to explore and try to give a meaningful impact to this syndrome's prevention and correct diagnosis by using a dataset coming from Kaggle called Polycystic ovary syndrome (PCOS), collected in 2020 from 10 hospitals in Kerala, India (Kottarathil, 2023).   
+|     Polyendocrine Metabolic Ovarian Syndrome (PMOS), previously known as Polycystic Ovarian Syndrome (PCOS), is hormonal condition affecting roughly 10% of women worldwide, especially in their fertile years (Teede et al., 2026; World Health Organization, 2026). The name changed recently after a medical consensus regarding the nature of the causes of PMOS, moving from focusing solely on the ovaries' cysts to a more holistic viewpoint (Teede et al., 2026). 
+|     The diagnosing criterion was developed by 27 experts in the Netherlands in 2003, and requires patients to meet at least two of the following criteria (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004): periods with irregular cycles, ovaries presenting polycysts in ultrasound images, and hyperandrogenism (e.g. acne and extra hair).
+|     While these criteria, especially the first and last, are easily verifiable without the need of expensive medical machinery, they are not shared universally by the medical community (Hdaib et al., 2022). The validity of this criteria is also inconsistent as we see rising cases of false negative and positive diagnoses (Christ & Cedars, 2023).
+|     Now more than ever there is a pressing need for more accurate, inexpensive diagnosis with more than 70% of cases remaining undiagnosed or misdiagnosed (World Health Organization, 2026). Machine learning (ML) has the potential to support PMOS diagnosis, aiding doctors and patients in their pursuit of answers.
 
-After cleaning the dataset for missing values, deleting indexing columns, and after making sure to have  treated numeric predictors as such, factor ones and character ones as such, we examined the dataset that contains 43 total variables.   
+We are going to explore and try to give a meaningful impact to this syndrome's prevention and correct diagnosis by using a dataset coming from Kaggle called Polycystic ovary syndrome (PCOS), collected in 2020 from 10 hospitals in Kerala, India (Kottarathil, 2023).
 
-The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.  
+After cleaning the dataset for missing values, deleting indexing columns, and after making sure to have treated numeric predictors as such, factor ones and character ones as such, we examined the dataset that contains 43 total variables.
+
+The dataset consists of a binary variable (that we will treat throughout this paper as our response) of `PCOS`, coded as 1 if they have been diagnosed with the syndrome and 0 if they have not.\
 The remaining variables, and especially the most important ones, will be discussed in the paper based on their importance.
 
-
 # 2. Methodology
-In order to aid the science community, and in particular women and doctors from both sides to help with the diagnosis and with the prevention, we experimented various ML methods to help convey an accurate diagnosis, that could be the most comfortable (no invasive unneeded checks) and straightforward possible (Khan & Khare, 2026). At the same time, we acknowledge that PMOS is a syndrome for which research focus has been put only in the last few decades and that the ongoing medical research regarding its causes and symptoms may reveal aspects that were not collected by the dataset (Kottarathil, 2023).      
-The protocol assumed for hyperparameters tuning spans from 5- to 10-fold Cross Validation (CV), while the training/test split happened with 75\%/25\% split.  
 
+In order to aid the science community, and in particular women and doctors from both sides to help with the diagnosis and with the prevention, we experimented various ML methods to help convey an accurate diagnosis, that could be the most comfortable (no invasive unneeded checks) and straightforward possible (Khan & Khare, 2026). At the same time, we acknowledge that PMOS is a syndrome for which research focus has been put only in the last few decades and that the ongoing medical research regarding its causes and symptoms may reveal aspects that were not collected by the dataset (Kottarathil, 2023).\
+The protocol assumed for hyperparameters tuning spans from 5- to 10-fold Cross Validation (CV), while the training/test split happened with 75%/25% split.
 
-##  2.1 Tree-Based Models
+## 2.1 Tree-Based Models
+
 ```{r, include=FALSE}
 #cleaning the data and dividing it into training and test
-PCOS_csv <- read_csv("/data/accounts/fa26/nicolamalatestafa26/DSCI445/dsci445project/PCOS.csv")
+PCOS_csv <- read_csv("/data/accounts/fa26/sarahhaywoodfa26/project-2/PCOS.csv")
 PCOS_csv$`II beta-HCG(mIU/mL)`[124] <- 1.99 #the typo as "1.99."
 PCOS_csv <- PCOS_csv[-306, ]
 
@@ -90,35 +87,35 @@ PCOS_training <- training(PCOS_splits)
 PCOS_testing <- testing(PCOS_splits)
 ```
 
-### 2.1.1 Why a Tree-Based Model? 
-Tree-Based models are non-parametric and supervised set of methods that we can use for both regression and classification as in this case).  
-Tree models segments the predictor space into simpler regions, and within each region, they predict the outcome based on the mode of training observations in the region to which it belongs. Our first reason behind fitting a tree is that they are simple to fit, simple to interpret and, most importantly, the results are easy to communicate to an outside viewer (such as a doctor or a nurse in this case). 
+### 2.1.1 Why a Tree-Based Model?
+
+Tree-Based models are non-parametric and supervised set of methods that we can use for both regression and classification as in this case).\
+Tree models segments the predictor space into simpler regions, and within each region, they predict the outcome based on the mode of training observations in the region to which it belongs. Our first reason behind fitting a tree is that they are simple to fit, simple to interpret and, most importantly, the results are easy to communicate to an outside viewer (such as a doctor or a nurse in this case).
 
 ### 2.1.2 Building a Classification Tree
-As noticed above, building a classification tree starts with splitting up the space in cleaver ways. While for regression trees we could use Recursive Binary Splitting: pick the splitting that minimizes Residual Sum of Squares (RSS), for classification we need to use, because of the non-continuous nature of the outcome, either of these 2 methods:  
-- **Gini Index**: $G= \sum_{k=1}^K \hat p_{mk}(1-\hat p_{mk})$, which is a variation of a Bernoulli trial's variance ($p(1-p)$) and measures the total variance across the $k$ classes. A low $G$ value (when $\hat p_{mk} \approx 0,\text{or} \approx1$) indicates that no terminal node is primarily including only observations from one class, while a large $G$ value (when $\hat p_{mk} \approx 0.5$) indicates that that terminal node includes primarily only observation from that class (purer node).  
-- **Entropy**: $D=- \sum_{k=1}^K \hat p_{mk} log (\hat p_{mk})$. A low $D$ (when $\hat p_{mk} \approx 0$) implies purer nodes, a large $D$ (when $\hat p_{mk} \approx 0.5$) implies that no node contain primarily observations from that one class $k$.    
-One big *caveat* is that these measures to evaluate the quality of the split (either Gini or Entropy) are very useful in cases when the data is balanced.  In our case, the percentage of `PCOS=1` over the total is around 32.65\%, so either measures may give not much of an advantage than merely using **Classification Error** defined as $\text {I} (y_i \ne \hat y_i)$, i.e. the sum of observations for which the predicted one is not the same as the actual one.   
-We will use Classification Error to define our classification tree splitting and to assess its performance. Below there are the code and attached results: 
 
+As noticed above, building a classification tree starts with splitting up the space in cleaver ways. While for regression trees we could use Recursive Binary Splitting: pick the splitting that minimizes Residual Sum of Squares (RSS), for classification we need to use, because of the non-continuous nature of the outcome, either of these 2 methods:\
+- **Gini Index**: $G= \sum_{k=1}^K \hat p_{mk}(1-\hat p_{mk})$, which is a variation of a Bernoulli trial's variance ($p(1-p)$) and measures the total variance across the $k$ classes. A low $G$ value (when $\hat p_{mk} \approx 0,\text{or} \approx1$) indicates that no terminal node is primarily including only observations from one class, while a large $G$ value (when $\hat p_{mk} \approx 0.5$) indicates that that terminal node includes primarily only observation from that class (purer node).\
+- **Entropy**: $D=- \sum_{k=1}^K \hat p_{mk} log (\hat p_{mk})$. A low $D$ (when $\hat p_{mk} \approx 0$) implies purer nodes, a large $D$ (when $\hat p_{mk} \approx 0.5$) implies that no node contain primarily observations from that one class $k$.\
+One big *caveat* is that these measures to evaluate the quality of the split (either Gini or Entropy) are very useful in cases when the data is balanced. In our case, the percentage of `PCOS=1` over the total is around 32.65%, so either measures may give not much of an advantage than merely using **Classification Error** defined as $\text {I} (y_i \ne \hat y_i)$, i.e. the sum of observations for which the predicted one is not the same as the actual one.\
+We will use Classification Error to define our classification tree splitting and to assess its performance. Below there are the code and attached results:
 
-The decision tree (non-pruned) has 10 terminal nodes and considering every single predictor yields an accuracy of around 83	\%, so a test error rate of around 17\%. The most important predictor is `Follicle No. (R)`.  
-Not great test error... This could be due to the fact that there are 41 predictors and we may have overfitted the data because of the resulting tree being too complex.  
-Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.    
-This decision tree that we fit achieved a higher accuracy (than around 76\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
+The decision tree (non-pruned) has 10 terminal nodes and considering every single predictor yields an accuracy of around 83 %, so a test error rate of around 17%. The most important predictor is `Follicle No. (R)`.\
+Not great test error... This could be due to the fact that there are 41 predictors and we may have overfitted the data because of the resulting tree being too complex.\
+Therefore, we need a way to get a smaller tree, that trades some bias for a huge reduction in variance: **pruning**.\
+This decision tree that we fit achieved a higher accuracy (than around 76%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
 ### 2.1.3 Pruning
 
-The goal of pruning is to subselect a smaller tree from the bigger one, that will yield us the lowest error rate. We could consider every single subtree from the bigger tree, that has so many predictors, and that will make any computer crash because of it being too computational expensive, so we we will us the **Cost Complexity Pruning* idea: we consider a sequence of trees indexed by a non-negative tuning parameter $\alpha$ (that we can find via 10-fold cross validation (CV)).  
-So for each value of $\alpha$, there exists a corresponding subtree such that $T \subset T_0$ where $T_0$ is the whole original unpruned tree, such that we minimize this quantity: $\sum_{m=1}^{|T|} \sum_{x_i \in R_m} (y_i - \hat y_{R_m})^2 + \alpha |T|$, where:  
-- $|T|$ is the size of the tree, and therefore we will penalize based on the size of the tree and based on the value of $\alpha$;  
-- $\hat y_{R_m}$ is the predicted response for that region (so `PCOS=0 or 1`);  
-- $R_m$ is the m$^{th}$ terminal node for the subtree $T$.  
-So we will use 10-fold CV to find the optimal value for the tuning and penalizing parameter $\alpha$ and then fit again over the whole dataset to see the actual accuracy/test error.   
-Below there are the code and attached results: 
+The goal of pruning is to subselect a smaller tree from the bigger one, that will yield us the lowest error rate. We could consider every single subtree from the bigger tree, that has so many predictors, and that will make any computer crash because of it being too computational expensive, so we we will us the \*\*Cost Complexity Pruning\* idea: we consider a sequence of trees indexed by a non-negative tuning parameter $\alpha$ (that we can find via 10-fold cross validation (CV)).\
+So for each value of $\alpha$, there exists a corresponding subtree such that $T \subset T_0$ where $T_0$ is the whole original unpruned tree, such that we minimize this quantity: $\sum_{m=1}^{|T|} \sum_{x_i \in R_m} (y_i - \hat y_{R_m})^2 + \alpha |T|$, where:\
+- $|T|$ is the size of the tree, and therefore we will penalize based on the size of the tree and based on the value of $\alpha$;\
+- $\hat y_{R_m}$ is the predicted response for that region (so `PCOS=0 or 1`);\
+- $R_m$ is the m$^{th}$ terminal node for the subtree $T$.\
+So we will use 10-fold CV to find the optimal value for the tuning and penalizing parameter $\alpha$ and then fit again over the whole dataset to see the actual accuracy/test error.\
+Below there are the code and attached results:
 
-
-### 2.1.4 Pruned Tree & Determining Tree Complexity via 10-fold CV 
+### 2.1.4 Pruned Tree & Determining Tree Complexity via 10-fold CV
 
 ```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE, out.width="50%"}
 #tree recipe
@@ -168,39 +165,38 @@ final_tree_fit |>
 
 
 ```
-  
-  With using 10-fold CV to choose the exact level of complexity ($\alpha=0.02424462$), then the test error for the pruned tree (with only 7 terminal nodes) is of around $1-0.9111111		=0.09$, which is a exactly the same than the non-pruned tree done above.  Still, `Follicle No. (R)` is the most important predictor.  
 
-Trees seem very competitive for their interpretability and science-communication ease, but compared to other methods, such as Lasso, most of the times tree-based models suffer from lower predictive performance and high variability (because of the sharp decision boundaries dictated by the regions).  Therefore we can take advantage of an approach called **Bagging** in order to lower its variability.  
+With using 10-fold CV to choose the exact level of complexity ($\alpha=0.02424462$), then the test error for the pruned tree (with only 7 terminal nodes) is of around $1-0.9111111       =0.09$, which is a exactly the same than the non-pruned tree done above. Still, `Follicle No. (R)` is the most important predictor.
 
+Trees seem very competitive for their interpretability and science-communication ease, but compared to other methods, such as Lasso, most of the times tree-based models suffer from lower predictive performance and high variability (because of the sharp decision boundaries dictated by the regions). Therefore we can take advantage of an approach called **Bagging** in order to lower its variability.
 
 ### 2.1.5 Bagging Tree
-Bagging stands for Bootstrap Aggregation and it comes from the idea that if you take multiple training sets from the population and then build a separate prediction model using each training set, then you can average the resulting predictions and end up with a lower variance in your overall model.  
 
-Therefore this seems like the most competitive to parametric methods we could ever be (maybe...) based on the fact that are fitting trees!  
+Bagging stands for Bootstrap Aggregation and it comes from the idea that if you take multiple training sets from the population and then build a separate prediction model using each training set, then you can average the resulting predictions and end up with a lower variance in your overall model.
 
-Despite, in practice we were supposed to end up with a lower variable tree, but we ended up with a similar accuracy (i.e. around the same test error) of around 0.9111111, so a test error of around 0.09 , than the pruned method, maybe because we are fitting 5000 trees.  
+Therefore this seems like the most competitive to parametric methods we could ever be (maybe...) based on the fact that are fitting trees!
+
+Despite, in practice we were supposed to end up with a lower variable tree, but we ended up with a similar accuracy (i.e. around the same test error) of around 0.9111111, so a test error of around 0.09 , than the pruned method, maybe because we are fitting 5000 trees.\
 The main result from a bagging tree is given by the **Importance Plot**, so from here we have a sense of which predictor matters most in predicting `PCOS` diagnosis. In this case, we end up that `Follicle No. (R): the number of follicles counted in your right ovary` and `Follicle No. (L): the number of follicles counted in your left ovary` are the two most influential ones, similarly to the pruned tree.
 
-### 2.1.6 Random Forest   
-One main limitation of bagged trees is that the number of predictors each tree is allowed to have is always the same, which could mean that a very-influential predictor may appear always on top of the importance plot and every tree may end up choosing it as a first decision split.  This makes all the other predictors not able to "compete" with their significance against the most-significant one.  Here is why *random forests* provide the idea of *Bagging* but with a freer prediction count per tree.  
-In fact random forests work as:  
-- While building the trees, a random sample of size $M$ predictors is chosen as the split candidates from the full set of $p$ predictors,  
-- Each time the tree is built, there is a different sample of predictors being chosen,  
-- It is based on $M$ and if $M=p$ then we are just fitting bagging, while as $M<p$ we get a better variance reduction than bagging because now each tree is more uncorrelated with the other trees because they are using different predictors,   
- 
+### 2.1.6 Random Forest
 
-The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11\%, a little worse than the bagging model, but definitely better than the unpruned decision tree.  Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis.   
-This random forest model that we fit achieved a higher accuracy (than around 88\%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
+One main limitation of bagged trees is that the number of predictors each tree is allowed to have is always the same, which could mean that a very-influential predictor may appear always on top of the importance plot and every tree may end up choosing it as a first decision split. This makes all the other predictors not able to "compete" with their significance against the most-significant one. Here is why *random forests* provide the idea of *Bagging* but with a freer prediction count per tree.\
+In fact random forests work as:\
+- While building the trees, a random sample of size $M$ predictors is chosen as the split candidates from the full set of $p$ predictors,\
+- Each time the tree is built, there is a different sample of predictors being chosen,\
+- It is based on $M$ and if $M=p$ then we are just fitting bagging, while as $M<p$ we get a better variance reduction than bagging because now each tree is more uncorrelated with the other trees because they are using different predictors,
+
+The random forest accuracy is of around 0.8962963, meaning that our test error is of around 11%, a little worse than the bagging model, but definitely better than the unpruned decision tree. Talking about importance, also from this model we end up having that both `Follicle No. (R)/(L)` are the most important predictors in estimating `PCOS` diagnosis.\
+This random forest model that we fit achieved a higher accuracy (than around 88%) than what other researchers have found with similar fitting processes using the same dataset (Khan & Khare, 2026).
 
 ### 2.1.7 Boosting
-The main limitation of bagging, or random forests, is that we are fitting the same decision tree for each of the subsets of the original training data, then we can introduce **Boosting** which allows us to fit a tree iteratively-based:    
-- the Boosted Tree learns slowly, so that we can avoid overfitting, in fact based on a current model, we fit a decision tree to the classification errors (residuals) and add that new tree to our original fitted function ($\hat f(x)$) to update the information known,  
-- Each tree we fit is typically very small with just a few terminal nodes, so we go from *higher bias* (because of the simpler trees) and *lower variance* (because of the less amount of predictors in the model), to a **lower bias** (because we are making the tree more complex as we go and let the model learn) and a **slight increase in variance** (because we are making the model have more predictors).   
-  
-  
-In this case we need to make cleaver choices (i.e. do tuning) for these parameters:  the number of total trees $B$ because in this case, not as in bagging or random forest, we could overfit with too many trees; the learning rate or shrinkage parameter $\lambda$, and if too small we can end up never achieving that reduction in variance, while if too big we may overfit too easily; and finally $d$, the number of splits in each tree. We will set $\lambda=0.01$ for **stamps** (i.e. $d=1$).  
 
+The main limitation of bagging, or random forests, is that we are fitting the same decision tree for each of the subsets of the original training data, then we can introduce **Boosting** which allows us to fit a tree iteratively-based:\
+- the Boosted Tree learns slowly, so that we can avoid overfitting, in fact based on a current model, we fit a decision tree to the classification errors (residuals) and add that new tree to our original fitted function ($\hat f(x)$) to update the information known,\
+- Each tree we fit is typically very small with just a few terminal nodes, so we go from *higher bias* (because of the simpler trees) and *lower variance* (because of the less amount of predictors in the model), to a **lower bias** (because we are making the tree more complex as we go and let the model learn) and a **slight increase in variance** (because we are making the model have more predictors).
+
+In this case we need to make cleaver choices (i.e. do tuning) for these parameters: the number of total trees $B$ because in this case, not as in bagging or random forest, we could overfit with too many trees; the learning rate or shrinkage parameter $\lambda$, and if too small we can end up never achieving that reduction in variance, while if too big we may overfit too easily; and finally $d$, the number of splits in each tree. We will set $\lambda=0.01$ for **stamps** (i.e. $d=1$).
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
 boost_spec <- boost_tree(trees = 5000, tree_depth = 1, learn_rate = 0.001) %>%
@@ -220,76 +216,59 @@ boost_fit <- fit(boost_wf, data=PCOS_training)
 #augment(boost_fit, new_data=PCOS_testing) |> metric(truth=PCOS, estimate=.pred_class)
 
 ```
-The boosted model has a estimated test accuracy of 0.866 and a test error of around 0.144. This does a little worse than the pruned tree alone and also somehow closer to the test error rate that we got from the bagged and random forest one.  
 
+The boosted model has a estimated test accuracy of 0.866 and a test error of around 0.144. This does a little worse than the pruned tree alone and also somehow closer to the test error rate that we got from the bagged and random forest one.
 
 ### 2.1.8 Final Model for Trees: Pruned Decision Tree!
 
-Based on the estimated test classification accuracy/error (of around 9\%), I would choose the pruned decision tree. Other than having the lowest test error rate, the pruned tree has the advantage, over the random forest and boost models for example, to be easily viewable as an actual tree graph. Additionally, having done a subselection of variables thanks to the pruning process, allows us to have in the model only the most important ones which are:  
-- `Follicle No. (R)`:  the number of follicles counted in the respondent's right ovary .   
+Based on the estimated test classification accuracy/error (of around 9%), I would choose the pruned decision tree. Other than having the lowest test error rate, the pruned tree has the advantage, over the random forest and boost models for example, to be easily viewable as an actual tree graph. Additionally, having done a subselection of variables thanks to the pruning process, allows us to have in the model only the most important ones which are:\
+- `Follicle No. (R)`: the number of follicles counted in the respondent's right ovary .
 
-- `Follicle No. (L)`:  the number of follicles counted in the respondent's left ovary .   
-- `hair growth(Y/N)`:  female respondents answered the question "Did you see your hair grow?" .  
-- `Weight gain(Y/N)`: female respondents answered the question "Did you gain weight?" .   
-It is hard to stress enough the great advantage of trees which is science communication and its integration with the clinical decision system: having a readily and easily-accessible and -readable graph in screenings to hand out to doctors and patients alike, this can aid the diagnosis from the doctors' standpoint and encourage patients to do frequent screenings and do preventive care rather than just waiting for the symptoms to overweight their lives upside-down.
-
+- `Follicle No. (L)`: the number of follicles counted in the respondent's left ovary .\
+- `hair growth(Y/N)`: female respondents answered the question "Did you see your hair grow?" .\
+- `Weight gain(Y/N)`: female respondents answered the question "Did you gain weight?" .\
+  It is hard to stress enough the great advantage of trees which is science communication and its integration with the clinical decision system: having a readily and easily-accessible and -readable graph in screenings to hand out to doctors and patients alike, this can aid the diagnosis from the doctors' standpoint and encourage patients to do frequent screenings and do preventive care rather than just waiting for the symptoms to overweight their lives upside-down.
 
 # 3. Results
 
-
 # Data Availability Statement
-The dataset "Polycystic ovary syndrome (PCOS)" by Kottarathil, P. that we used comes from the publicly available source in Kaggle available from 2023 <https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos>. 
 
+The dataset "Polycystic ovary syndrome (PCOS)" by Kottarathil, P. that we used comes from the publicly available source in Kaggle available from 2023 <https://www.kaggle.com/datasets/prasoonkottarathil/polycystic-ovary-syndrome-pcos>.
 
 # 4. References
-Please double check for who has more experience than me with APA 7$^{th}$ edition citation, I used this website to help me out <https://www.mybib.com/tools/apa-citation-generator>. 
 
-  (Christ & Cedars, 2023)
+Please double check for who has more experience than me with APA 7$^{th}$ edition citation, I used this website to help me out <https://www.mybib.com/tools/apa-citation-generator>.
 
-  Christ, J. P., & Cedars, M. I. (2023). Current guidelines for diagnosing PCOS. Diagnostics, 13(6), Article 1113. https://doi.org/10.3390/diagnostics13061113
+(Christ & Cedars, 2023)
 
+Christ, J. P., & Cedars, M. I. (2023). Current guidelines for diagnosing PCOS. Diagnostics, 13(6), Article 1113. <https://doi.org/10.3390/diagnostics13061113>
 
-  (Elmannai et al., 2023)
-  
-  Elmannai, H., El-Rashidy, N., Mashal, I., Alohali, M. A., Farag, S., El-Sappagh, S., & Saleh, H. (2023). Polycystic ovary syndrome detection machine learning model based on optimized feature selection and explainable artificial intelligence. Diagnostics, 13(8), Article 1506. https://doi.org/10.3390/diagnostics13081506  
-  
-  
-   (Hdaib et al., 2022)
-  
-  Hdaib, D., Almajali, N., Alquran, H., Mustafa, W. A., Al-Azzawi, W., & Alkhayyat, A. (2022). Detection of polycystic ovary syndrome (PCOS) using machine learning algorithms. In 2022 5th International Conference on Engineering Technology and Its Applications (IICETA) (pp. 532–536). IEEE. https://doi.org/10.1109/IICETA54559.2022.9888677
+(Elmannai et al., 2023)
 
-  
-  (Khan & Khare, 2026)
-  
-  Khan, I., & Khare, B. K. (2026). Diagnosis of polycystic ovary syndrome (PCOS) using TabNet and BiLSTM with attention model. Health Systems, 15(3), 207–222. https://doi.org/10.1080/20476965.2025.2601099
-  
-  
-  (Kottarathil, 2023)
-  
+Elmannai, H., El-Rashidy, N., Mashal, I., Alohali, M. A., Farag, S., El-Sappagh, S., & Saleh, H. (2023). Polycystic ovary syndrome detection machine learning model based on optimized feature selection and explainable artificial intelligence. Diagnostics, 13(8), Article 1506. <https://doi.org/10.3390/diagnostics13081506>
 
+(Hdaib et al., 2022)
 
+Hdaib, D., Almajali, N., Alquran, H., Mustafa, W. A., Al-Azzawi, W., & Alkhayyat, A. (2022). Detection of polycystic ovary syndrome (PCOS) using machine learning algorithms. In 2022 5th International Conference on Engineering Technology and Its Applications (IICETA) (pp. 532–536). IEEE. <https://doi.org/10.1109/IICETA54559.2022.9888677>
 
- (Maranhão et al., 2026)
+(Khan & Khare, 2026)
 
-  Maranhão, G. B. de A., Freitas, W. W. L., de Miranda, B. A., Lins, C. S., et al. (2026). Predicting polycystic ovary syndrome using statistical data integration and machine learning with low-cost information. Neural Computing and Applications, 38, Article 573. https://doi.org/10.1007/s00521-026-12211-y
-  
-  
-  (Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004)
-  
-  Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group. (2004). Revised 2003 consensus on diagnostic criteria and long-term health risks related to polycystic ovary syndrome. Fertility and Sterility, 81(1), 19–25. https://doi.org/10.1016/j.fertnstert.2003.10.004
+Khan, I., & Khare, B. K. (2026). Diagnosis of polycystic ovary syndrome (PCOS) using TabNet and BiLSTM with attention model. Health Systems, 15(3), 207–222. <https://doi.org/10.1080/20476965.2025.2601099>
 
+(Kottarathil, 2023)
 
-  
-   (Teede et al., 2026)
-   
-  Teede, H. J., Khomami, M. B., Morman, R., Laven, J. S. E., Joham, A. E., Costello, M. F., et al. (2026). Polyendocrine metabolic ovarian syndrome, the new name for polycystic ovary syndrome: A multistep global consensus process. The Lancet. https://doi.org/10.1016/S0140-6736(26)00717-8
-  
-  
-   (World Health Organization, 2026)
-   
-  World Health Organization. (2026, January 22). Polycystic ovary syndrome. https://www.who.int/news-room/fact-sheets/detail/polycystic-ovary-syndrome
+(Maranhão et al., 2026)
 
+Maranhão, G. B. de A., Freitas, W. W. L., de Miranda, B. A., Lins, C. S., et al. (2026). Predicting polycystic ovary syndrome using statistical data integration and machine learning with low-cost information. Neural Computing and Applications, 38, Article 573. <https://doi.org/10.1007/s00521-026-12211-y>
 
+(Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, 2004)
 
+Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group. (2004). Revised 2003 consensus on diagnostic criteria and long-term health risks related to polycystic ovary syndrome. Fertility and Sterility, 81(1), 19–25. <https://doi.org/10.1016/j.fertnstert.2003.10.004>
 
-  
+(Teede et al., 2026)
+
+Teede, H. J., Khomami, M. B., Morman, R., Laven, J. S. E., Joham, A. E., Costello, M. F., et al. (2026). Polyendocrine metabolic ovarian syndrome, the new name for polycystic ovary syndrome: A multistep global consensus process. The Lancet. [https://doi.org/10.1016/S0140-6736(26)00717-8](https://doi.org/10.1016/S0140-6736(26)00717-8){.uri}
+
+(World Health Organization, 2026)
+
+World Health Organization. (2026, January 22). Polycystic ovary syndrome. <https://www.who.int/news-room/fact-sheets/detail/polycystic-ovary-syndrome>
